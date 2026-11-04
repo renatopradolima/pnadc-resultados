@@ -6,7 +6,7 @@ arquivo só (`PNADC_Resultados.html`): abra com duplo clique no Edge ou no Chrom
 - **Resultados** com a significância publicada de cada variação e o CV sempre à vista; escolha da UF em destaque (ou nenhuma)
   e da publicação em análise (por padrão a última).
 - Gráficos e tabelas em **tela cheia**, exportáveis em **JPG**, com **slider de período** e alternância entre quantidade e
-  percentual onde faz sentido. **Comparar períodos** (inclusive várias variáveis no mesmo gráfico), **Capital e RM**, **mapa das UFs**.
+  percentual onde faz sentido. **Comparações** (inclusive várias variáveis no mesmo gráfico), **Capital e RM**, **mapa das UFs**.
 - **Apresentar** (slides em tela cheia) e **PDF** do relatório; **gerador de releases** (texto, imagens, HTML, PDF, Word e OpenDocument).
 - **Entenda a PNADC**: história, método e conceitos (força de trabalho, desocupação, desalento, subutilização) com figuras e fontes oficiais do IBGE.
 - Aviso de publicação nova do IBGE. Os dados vêm direto da API pública de agregados do IBGE (SIDRA) e ficam guardados no

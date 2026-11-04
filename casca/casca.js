@@ -132,7 +132,7 @@ const CASCA = (() => {
     if (!el || vista) return;
     const b = U.el('button', { class: 'mo-btn', type: 'button', title: 'Dispensar esta dica', 'aria-label': 'Dispensar esta dica' }, MOLDURA.icone('fechar', 14));
     b.onclick = () => { el.hidden = true; try { localStorage.setItem(CHAVE_DICA, '1'); } catch (e) { /* vale nesta aba */ } };
-    el.replaceChildren(MOLDURA.icone('info', 15), U.el('span', {}, 'Primeira vez? Os números vêm direto do IBGE e ficam guardados neste navegador (a primeira abertura leva alguns segundos). Escolha a UF e a publicação no alto; "Gerar release" e "Comparar períodos" estão no menu.'), b);
+    el.replaceChildren(MOLDURA.icone('info', 15), U.el('span', {}, 'Primeira vez? Os números vêm direto do IBGE e ficam guardados neste navegador (a primeira abertura leva alguns segundos). Escolha a UF e a publicação no alto; "Gerar release" e "Comparações" estão no menu.'), b);
     el.hidden = false;
   }
 

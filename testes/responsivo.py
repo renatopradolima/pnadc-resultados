@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Responsividade: a casca em celular, tablet, notebook e tela grande. Em cada tamanho, cada página
-(seções de Resultados, Comparar períodos, Gerar release, Sobre) não pode ter rolagem horizontal, nem
+(seções de Resultados, Comparações, Gerar release, Sobre) não pode ter rolagem horizontal, nem
 elemento (fora de áreas rolantes e do canvas) passando da largura da janela, e os cartões têm de caber."""
 import json
 import sys

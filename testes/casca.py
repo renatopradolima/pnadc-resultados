@@ -232,7 +232,7 @@ JS_ROTEIRO = r"""
       const lk = document.querySelector('#nav a[data-pagina="comparar"]');
       lk.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); await espera(100);
       const tip = document.getElementById('tip-nav');
-      V.barra = { status: /Última conferência com o IBGE/.test((document.getElementById('nav-status') || { innerText: '' }).innerText), dica: !!tip && tip.style.display === 'block' && /Comparar períodos/.test(tip.textContent), aria: lk.getAttribute('aria-label') };
+      V.barra = { status: /Última conferência com o IBGE/.test((document.getElementById('nav-status') || { innerText: '' }).innerText), dica: !!tip && tip.style.display === 'block' && /Comparações/.test(tip.textContent), aria: lk.getAttribute('aria-label') };
       lk.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
 
       // ---- alternativas de redação: toda combinação passa pela conferência (nenhum bloqueio), a escolha muda o texto e a padrão é a de sempre
@@ -490,7 +490,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(r.get('n_canvas', 0) >= 1, (rotulo + ': há gráfico (canvas) na página (%s)') % r.get('n_canvas'))
     ctx.confere(r.get('n_erros_tela') == 0, rotulo + ': nenhum aviso de erro na tela de Resultados')
     ctx.confere('Última conferência com o IBGE' in (r.get('faixa') or ''), (rotulo + ': faixa de estado diz quando conferiu (%r)') % (r.get('faixa'),))
-    ctx.confere(r.get('menu') == ['Resultados*', 'Comparar períodos', 'Gerar release', 'Entenda a PNADC', 'Sobre'], (rotulo + ': menu e item ativo (%r)') % (r.get('menu'),))
+    ctx.confere(r.get('menu') == ['Resultados*', 'Comparações', 'Gerar release', 'Entenda a PNADC', 'Sobre'], (rotulo + ': menu e item ativo (%r)') % (r.get('menu'),))
     s = r.get('seccoes') or {}
     ctx.confere(s.get('brasil', 0) > 500 and s.get('regioes', 0) > 500 and s.get('regioes_norte') and s.get('informalidade'),
                 (rotulo + ': seções Brasil, Regiões e indicador escolhido desenham (%r)') % (s,))
@@ -505,7 +505,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
                 (rotulo + ': cabeçalho único (barra verde) com o lugar onde você está, sem repetir o nome do programa (%r)') % (v.get('subtitulo'),))
     ctx.confere(all(x in (v.get('hero_botoes') or []) for x in ('Apresentar', 'PDF', 'Atualizar com o IBGE')) and (v.get('hero_botoes') or []).count('Gerar release') == 0,
                 (rotulo + ': botões do cabeçalho, sem "Gerar release" repetido (%r)') % (v.get('hero_botoes'),))
-    ctx.confere('Capital e RM' in (v.get('secoes') or []) and 'Comparar períodos' not in (v.get('secoes') or []), (rotulo + ': seções novas (%r)') % (v.get('secoes'),))
+    ctx.confere('Capital e RM' in (v.get('secoes') or []) and 'Comparações' not in (v.get('secoes') or []), (rotulo + ': seções novas (%r)') % (v.get('secoes'),))
     ctx.confere(v.get('kpis', 0) >= 8 and v.get('sparks', 0) >= 8, (rotulo + ': cartões-resumo com minigráfico (%s/%s)') % (v.get('kpis'), v.get('sparks')))
     ctx.confere(v.get('btn_cheia', 0) >= 3 and v.get('btn_jpg', 0) >= 3, (rotulo + ': todo gráfico e tabela tem tela cheia e JPG (%s/%s)') % (v.get('btn_cheia'), v.get('btn_jpg')))
     m = v.get('modo') or {}
@@ -520,7 +520,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(cp.get('cartoes', 0) >= 3 and cp.get('canvases', 0) >= 1 and cp.get('tem') and cp.get('kpis', 0) >= 2 and cp.get('linhas', 0) >= 3, (rotulo + ': seção Capital e RM (%r)') % (cp,))
     cm = v.get('comparar') or {}
     ctx.confere(cm.get('selects') == 3 and cm.get('linhas') == 8 and cm.get('apos') == 8 and 'a=' in (cm.get('hash') or '') and cm.get('leitura') and cm.get('abs'),
-                (rotulo + ': Comparar períodos (controles, 8 indicadores, troca de período, modo p.p.) (%r)') % (cm,))
+                (rotulo + ': Comparações (controles, 8 indicadores, troca de período, modo p.p.) (%r)') % (cm,))
     ro = v.get('rotulos') or {}
     ctx.confere(ro.get('imagens', 0) >= 10 and not ro.get('sobreposicoes'), (rotulo + ': NENHUM rótulo sobre outro nem fora da imagem em %s mapas/gráficos (%s)') % (ro.get('imagens'), (ro.get('sobreposicoes') or [])[:5]))
     ctx.confere((v.get('espalhar') or {}).get('folga', 0) >= 24, (rotulo + ': espalhar mantém o espaço mínimo entre rótulos (%r)') % (v.get('espalhar'),))
@@ -572,7 +572,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(len(en.get('links') or []) >= 9 and all(l.startswith('https://') or l.startswith('http://www.ilo.org/') for l in en['links']) and all('ibge.gov.br' in l or 'ilo.org' in l for l in en['links']),
                 (rotulo + ': fontes oficiais com link (IBGE e OIT) (%r)') % (en.get('links'),))
     ctx.confere(en.get('icones') == 5, (rotulo + ': cada item do menu tem um ícone diferente (%r distintos de 5)') % (en.get('icones'),))
-    ctx.confere(en.get('menu') == ['Resultados', 'Comparar períodos', 'Gerar release', 'Entenda a PNADC*', 'Sobre'], (rotulo + ': "Entenda a PNADC" fica acima de "Sobre" no menu (%r)') % (en.get('menu'),))
+    ctx.confere(en.get('menu') == ['Resultados', 'Comparações', 'Gerar release', 'Entenda a PNADC*', 'Sobre'], (rotulo + ': "Entenda a PNADC" fica acima de "Sobre" no menu (%r)') % (en.get('menu'),))
 
     mu = v2.get('multi') or {}
     tx, du, tr = mu.get('taxas') or {}, mu.get('duas') or {}, mu.get('tres') or {}

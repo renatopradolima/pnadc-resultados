@@ -51,7 +51,7 @@ const PUBLICACOES = (() => {
     { id: 'regioes', rot: 'Grandes Regiões', ico: 'rank' },
     { id: 'uf', rot: 'UF', ico: 'pin' },
     { id: 'capitais', rot: 'Capital e RM', ico: 'capital' },
-    { id: 'comparar', rot: 'Comparar períodos', ico: 'comparar' },
+    { id: 'comparar', rot: 'Comparações', ico: 'comparar' },
   ];
   /* O que uma variação SIGNIFICATIVA quer dizer, por indicador (só é dito
      quando o IBGE publica a variação como significativa). */
@@ -962,11 +962,11 @@ const PUBLICACOES = (() => {
       temApres && !soAtualizar ? MOLDURA.botaoHero('PDF', 'pdf', b => APRESENTACAO.baixarPdf(D, b)) : null,
       botaoAtualizar(),
     ].concat(AMBIENTE.acoesExtras ? AMBIENTE.acoesExtras() : []) : null;
-    const cabecalho = sec === 'comparar' ? { t: 'Comparar períodos', s: 'Escolha um território e dois períodos: a página mostra a diferença em cada indicador.' }
+    const cabecalho = sec === 'comparar' ? { t: 'Comparações', s: 'Compare dois períodos de um território ou ponha várias variáveis no mesmo gráfico ao longo do tempo.' }
       : sec === 'release' ? { t: 'Gerar release', s: 'Texto, imagens, HTML e PDF prontos para divulgar a publicação em análise.' }
         : { t: 'Resultados da PNAD Contínua', s: 'Os números que o IBGE divulga — Brasil, Grandes Regiões, UF, capital e região metropolitana.' };
     // no cabeçalho da casca (que já diz "PNADC Resultados") o subtítulo diz ONDE você está, não repete o nome do programa
-    const tituloCab = sec === 'comparar' ? 'Comparar períodos' : sec === 'release' ? 'Gerar release' : sec === 'brasil' ? 'Brasil' : sec === 'regioes' ? 'Grandes Regiões' : sec === 'capitais' ? 'Capital e região metropolitana' : (D && (D.uf.nome || D.uf.sigla)) || 'Unidades da Federação';
+    const tituloCab = sec === 'comparar' ? 'Comparações' : sec === 'release' ? 'Gerar release' : sec === 'brasil' ? 'Brasil' : sec === 'regioes' ? 'Grandes Regiões' : sec === 'capitais' ? 'Capital e região metropolitana' : (D && (D.uf.nome || D.uf.sigla)) || 'Unidades da Federação';
     const opcHero = { titulo: cabecalho.t, tituloCab,
       subtitulo: cabecalho.s,
       selos: D ? [D.uf.codigo ? { rotulo: 'UF em destaque', valor: D.uf.nome || D.uf.sigla } : null, periodoRef ? { rotulo: D.referencia ? 'Publicação (anterior)' : 'Última publicação', valor: periodoRef } : null, { rotulo: 'Fonte', valor: 'IBGE · SIDRA' }].filter(Boolean) : [], acoes };
@@ -986,7 +986,7 @@ const PUBLICACOES = (() => {
     // Brasil e UF levam a bandeira no lugar do ícone (a miniatura vem embutida; sem rede)
     const iconeSec = s => { const f = typeof BANDEIRAS === 'undefined' ? null : s.id === 'brasil' ? BANDEIRAS.img('BR', '15px') : s.id === 'uf' && D.uf.codigo ? BANDEIRAS.img(D.uf.codigo, '15px') : null; return f || MOLDURA.icone(s.ico, 16); };
     const rotuloSec = s => (s.id === 'uf' ? (D.uf.nome || ufSigla || 'UFs') : s.id === 'regioes' ? (nomeLocal('N2', D.regiao.codigo) ? `${s.rot} (${nomeLocal('N2', D.regiao.codigo)} em destaque)` : s.rot) : s.rot);
-    // com o menu lateral do hospedeiro (casca), Comparar períodos e Gerar release moram lá: aqui só as seções de Resultados
+    // com o menu lateral do hospedeiro (casca), Comparações e Gerar release moram lá: aqui só as seções de Resultados
     const doMenu = !!AMBIENTE.menuTemAreas, abas = secoes.filter(s => !(doMenu && (s.id === 'comparar' || s.id === 'release')));
     if (!(doMenu && (sec === 'comparar' || sec === 'release'))) cont.append(U.el('nav', { class: 'mo-secoes', 'aria-label': 'Seções de Resultados' },
       ...abas.map(s => U.el('a', { class: 'mo-secao' + (s.id === sec ? ' ativo' : ''), href: `#/publicacoes?sec=${s.id}` + (query && query.get('ind') && s.id !== 'comparar' ? `&ind=${encodeURIComponent(query.get('ind'))}` : ''),
