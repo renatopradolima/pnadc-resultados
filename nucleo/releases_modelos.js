@@ -226,7 +226,7 @@ const RELEASE_MODELOS = (() => {
     return { territorio: 'uf', ufsEscopo: 'regiao', familia: 'trimestral', periodo: null, comparar: { anterior: true, ano: true }, serie: 'nao',
       indicadores: null, publico: 'imprensa', midia: 'site', estilo: 'factual', tamanho: 'padrao', segundos: 30, telas: 5, formatoImg: '1080x1350',
       visuais: null, extras: { portaVoz: { incluir: false, nome: '', cargo: '' }, contato: { setor: '', telefone: '', email: '' }, nota: 'auto',
-        entenda: false, destaques: true, cidade: '', dataPublicacao: hojeIso || '', link: '', divulgacaoManual: '' } };
+        entenda: false, destaques: true, cidade: '', dataPublicacao: hojeIso || '', link: '', divulgacaoManual: '', alt: { titulo: '', linhaFina: '', lide: '' } } };
   };
   M.MIDIAS = [
     { id: 'site', rot: 'Site ou portal', desc: 'Título, linha fina, lide, intertítulos e destaques; gráfico logo depois do parágrafo que o anuncia.', formato: 'md', tamanhos: ['curta', 'padrao', 'completo'] },
@@ -267,6 +267,7 @@ const RELEASE_MODELOS = (() => {
     e.extras = Object.assign({}, p.extras, e.extras || {});
     e.extras.portaVoz = Object.assign({}, p.extras.portaVoz, e.extras.portaVoz || {});
     e.extras.contato = Object.assign({}, p.extras.contato, e.extras.contato || {});
+    e.extras.alt = Object.assign({}, p.extras.alt, e.extras.alt || {});
     e.comparar = Object.assign({}, p.comparar, e.comparar || {});
     if (e.territorio !== 'brasil' && e.familia === 'movel') e.familia = 'trimestral';
     const md = M.midia(e.midia);
@@ -557,7 +558,7 @@ const RELEASE_MODELOS = (() => {
     const F = R.F, E = R.E, t = F.terr, o = opc || {};
     if (t.conjunto) return lideConjunto(R, it, o);
     const comp = compPrincipal(E, it);
-    const sujeito = cap(it.nm.sujeito) + ' ' + t.em;
+    const sujeito = o.ordem === 'terr' ? cap(t.em) + ', ' + it.nm.sujeito : cap(it.nm.sujeito) + ' ' + t.em;
     const fonte = o.semFonte ? '' : ', ' + R.fraseFonte();
     const outro = comp === 'ano' ? 'ant' : 'ano';
     const ligaOutro = comp && (outro === 'ano' ? E.comparar.ano : E.comparar.anterior);
@@ -717,7 +718,7 @@ const RELEASE_MODELOS = (() => {
     const comp = compPrincipal(R.E, it), dir = comp === 'ano' ? it.dirAno : it.dirAnt;
     return `${it.nm.titulo} ${VERBO_TITULO_CURTO[dir] || 'é estimado'} ${R.F.terr.curto}`.replace('é estimado', it.nm.g === 'f' ? 'é estimada' : 'é estimado');
   };
-  function titulo(R, it) {
+  function tituloPadrao(R, it) {
     const F = R.F, E = R.E, t = F.terr;
     if (t.conjunto) {
       const comp = E.comparar.anterior ? 'ant' : 'ano', k = contagemConjunto(R, it, comp), n = it.conjunto.length;
@@ -740,19 +741,92 @@ const RELEASE_MODELOS = (() => {
     if (tt.length > 90) tt = `${suj} ${t.em} ${verbo} ${val}${frente}`;      // §12.6: o período vai para a linha fina
     return tt;
   }
-  function linhaFina(R, lide, resto, tituloSemPeriodo) {
+
+  // ------------------------------------------------------------------ ALTERNATIVAS de redação (manchete, linha fina, lide)
+  /* Cada alternativa é montada com os MESMOS fatos e as mesmas regras (verbo de tendência só com significância, nada de causa,
+     diferença entre territórios só como fato aritmético) e passa pela mesma conferência. O assistente mostra as opções e guarda a
+     escolha em E.extras.alt; sem escolha vale a primeira (a padrão). Montar as alternativas não pode mexer no rodízio de verbos. */
+  const minusc = s => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+  const ARTIGO_INICIAL = /^(A|O|As|Os|Um|Uma|Uns|Umas) /;
+  const minArt = s => (ARTIGO_INICIAL.test(s) ? minusc(s) : s);
+  const semEfeito = (R, fn) => { const k = R.k, pf = R.ppFeito; try { return fn(); } finally { R.k = k; R.ppFeito = pf; } };
+  const unicas = lista => { const vistos = new Set(); return lista.filter(a => { const k = semAcento(a.texto).toLowerCase(); if (!a.texto || vistos.has(k)) return false; vistos.add(k); return true; })
+    .map(a => Object.assign({}, a, { nota: `${a.texto.length} caracteres${a.texto.length > 100 && a.grupo === 'titulo' ? ' (longo para manchete)' : ''}` })); };
+  const escolhida = (R, grupo, lista) => { const id = (R.E.extras.alt || {})[grupo]; return lista.find(x => x.id === id) || lista[0]; };
+  function titulos(R, it) {
+    return semEfeito(R, () => {
+      const F = R.F, E = R.E, t = F.terr, out = [{ id: 'padrao', rot: 'Verbo e valor (padrão)', texto: tituloPadrao(R, it) }];
+      if (t.conjunto) {
+        out.push({ id: 'institucional', rot: 'Institucional', texto: 'PNAD Contínua: ' + minusc(out[0].texto) });
+        return unicas(out.map(a => Object.assign(a, { grupo: 'titulo' })));
+      }
+      const comp = compPrincipal(E, it), dir = comp === 'ano' ? it.dirAno : comp === 'ant' ? it.dirAnt : 'sem';
+      const suj = it.ind.id === 'desocupacao' ? (R.pub === 'imprensa' || R.pub === 'geral' ? 'Desemprego' : 'Desocupação') : it.nm.titulo;
+      const val = R.val(it, it.v);
+      const perT = F.fam === 'trimestral' ? `no ${pN(F.per)}º trimestre de ${pAno(F.per)}` : `no trimestre encerrado em ${MESES[pN(F.per) - 1]}`;
+      const quando = comp === 'ano' ? 'em um ano' : (F.fam === 'trimestral' ? 'frente ao trimestre anterior' : 'frente a três meses antes');
+      if (significativa(dir)) {
+        const d = comp === 'ano' ? it.va : it.vc;
+        const delta = R.reg(num(Math.abs(d), 1)) + (it.ind.tipo === 'taxa' ? ' p.p.' : '%');
+        out.push({ id: 'variacao', rot: 'Foco na variação', texto: `${suj} ${t.em} ${dir === 'aumentou' ? 'sobe' : 'recua'} ${delta} ${quando} e chega a ${val}` });
+      }
+      out.push({ id: 'numero', rot: 'Número em primeiro lugar', texto: `${val}: ${minusc(suj)} ${t.em} ${perT}` });
+      const r = it.refs || {};
+      const ref = (t.id === 'uf' || t.id === 'regiao') && r.brasil ? ['no Brasil', r.brasil] : t.id === 'capital' && r.uf ? [emUf(F.uf.sigla, F.uf.nome), r.uf] : null;
+      if (ref && it.ind.tipo !== 'contagem' && !vazio(ref[1].v)) out.push({ id: 'contexto', rot: 'Com a referência (sem afirmar diferença)', texto: `${suj} ${t.em} é de ${val}; ${ref[0]}, ${R.val(it, ref[1].v)}` });
+      out.push({ id: 'curto', rot: 'Curto', texto: `${suj} ${t.sigla ? 'em ' + t.sigla : t.em}: ${val}` });
+      const inst = `PNAD Contínua: ${minusc(suj)} ${t.em} ${VERBO_TITULO[dir] || 'é de'} ${val} ${perT}`;
+      out.push({ id: 'institucional', rot: 'Institucional', texto: inst });
+      return unicas(out.map(a => Object.assign(a, { grupo: 'titulo' })));
+    });
+  }
+  const titulo = (R, it) => escolhida(R, 'titulo', titulos(R, it)).texto;
+  function lides(R, it) {
+    const t = R.F.terr, f = o => semEfeito(R, () => lideFrase(R, it, o));
+    const out = [{ id: 'padrao', rot: 'Fato, comparação e fonte (padrão)', texto: f({}) }];
+    if (!t.conjunto) {
+      out.push({ id: 'territorio', rot: 'Começa pelo território', texto: f({ ordem: 'terr' }) });
+      out.push({ id: 'fonte', rot: 'Começa pela fonte', texto: `${cap(R.fraseFonte())}, ${minArt(f({ semFonte: true }))}` });
+    }
+    out.push({ id: 'enxuto', rot: 'Enxuto (a fonte fica na linha de fonte)', texto: f({ semFonte: true }) });
+    return unicas(out.map(a => Object.assign(a, { grupo: 'lide' })));
+  }
+  function lideEscolhido(R, it, o) {
+    const id = (R.E.extras.alt || {}).lide;
+    if (id === 'territorio') return lideFrase(R, it, Object.assign(o, { ordem: 'terr' }));
+    if (id === 'fonte') return `${cap(R.fraseFonte())}, ${minArt(lideFrase(R, it, Object.assign(o, { semFonte: true })))}`;
+    if (id === 'enxuto') return lideFrase(R, it, Object.assign(o, { semFonte: true }));
+    return lideFrase(R, it, o);
+  }
+  function linhasFinas(R, it, resto, semPer) {
+    return semEfeito(R, () => unicas([
+      { id: 'padrao', rot: 'Destaque, referência e período (padrão)', texto: linhaFina(R, it, resto, semPer, 'padrao') },
+      { id: 'contexto', rot: 'Referência primeiro', texto: linhaFina(R, it, resto, semPer, 'contexto') },
+      { id: 'curta', rot: 'Curta (uma informação)', texto: linhaFina(R, it, resto, semPer, 'curta') },
+    ].map(a => Object.assign(a, { grupo: 'linhaFina' }))));
+  }
+  /* alternativas para o assistente (site e jornal): { titulo, linhaFina, lide } */
+  M.alternativas = function (F) {
+    if (!F || !F.lide || !F.per) return null;
+    const R = Redator(F), it = F.lide, tt = titulo(R, it);
+    return { titulo: titulos(R, it), linhaFina: linhasFinas(R, it, F.resto, tt.indexOf('trimestre') < 0), lide: lides(R, it) };
+  };
+  function linhaFina(R, lide, resto, tituloSemPeriodo, modo) {
     const F = R.F, E = R.E;
     const sig = resto.filter(it => itemSig(E, it)).sort((a, b) => relevancia(b) - relevancia(a));
-    const partes = [];
-    if (tituloSemPeriodo) partes.push(cap(R.perL()));
-    if (sig.length) { const it = sig[0], comp = compPrincipal(E, it); partes.push(`${it.nm.titulo} ${sitResumo(R, it, comp, true)}`); }
+    const pPer = tituloSemPeriodo ? cap(R.perL()) : null;
+    let pSig = null, pRef = null;
+    if (sig.length) { const it = sig[0], comp = compPrincipal(E, it); pSig = `${it.nm.titulo} ${sitResumo(R, it, comp, true)}`; }
     const r = lide.refs || {};
     const nomeL = lide.nm.titulo.toLowerCase();
-    if (F.terr.id === 'uf' && r.brasil && lide.ind.tipo !== 'contagem') partes.push(`no Brasil, ${nomeL} de ${R.val(lide, r.brasil.v)}` + (r.regiao ? `; na Região ${F.regNome}, de ${R.val(lide, r.regiao.v)}` : ''));
-    else if (F.terr.id === 'regiao' && r.brasil && lide.ind.tipo !== 'contagem') partes.push(`no Brasil, ${nomeL} de ${R.val(lide, r.brasil.v)}`);
-    else if (F.terr.id === 'capital' && r.uf) partes.push(`${emUf(F.uf.sigla, F.uf.nome)}, ${nomeL} de ${R.val(lide, r.uf.v)}`);
+    if (F.terr.id === 'uf' && r.brasil && lide.ind.tipo !== 'contagem') pRef = `no Brasil, ${nomeL} de ${R.val(lide, r.brasil.v)}` + (r.regiao ? `; na Região ${F.regNome}, de ${R.val(lide, r.regiao.v)}` : '');
+    else if (F.terr.id === 'regiao' && r.brasil && lide.ind.tipo !== 'contagem') pRef = `no Brasil, ${nomeL} de ${R.val(lide, r.brasil.v)}`;
+    else if (F.terr.id === 'capital' && r.uf) pRef = `${emUf(F.uf.sigla, F.uf.nome)}, ${nomeL} de ${R.val(lide, r.uf.v)}`;
+    const m = modo || (R.E.extras.alt || {}).linhaFina || 'padrao';
+    let partes = (m === 'contexto' ? [pPer, pRef, pSig] : [pPer, pSig, pRef]).filter(Boolean);
+    if (m === 'curta') partes = [pPer, pSig || pRef].filter(Boolean);
     if (!partes.length) { const rk = rankingFrase(R, lide); if (rk) partes.push(rk.replace(/\.$/, '')); }
-    return cap(partes.join('; '));
+    return cap(partes.map((p, i) => (i && p === pSig ? minusc(p) : p)).join('; '));
   }
   function citacao(E) {
     const p = E.extras.portaVoz;
@@ -788,7 +862,7 @@ const RELEASE_MODELOS = (() => {
     const o = {};
     const cidade = cidadeDe(R);
     const dateline = cidade && E.extras.dataPublicacao ? `${cidade}, ${R.reg(dataLonga(E.extras.dataPublicacao))} – ` : '';
-    let lide = lideFrase(R, it, o);
+    let lide = lideEscolhido(R, it, o);
     if (tam === 'curta') {
       const ref = referencia(R, it);
       const txt = [`# ${tt}`, '', dateline + lide + (ref ? ' ' + ref : '') + (F.terr.conjunto ? ' ' + focoConjunto(R, it) : ''), '', R.reg(`Fonte: IBGE, PNAD Contínua, SIDRA tabela ${F.tabelas[0]}. Divulgação oficial: ${dataCurta(F.div.data)}.`) + ` Mais informações: ${linkDe(R)}`];
@@ -1086,6 +1160,29 @@ const RELEASE_MODELOS = (() => {
     return m;
   };
 
+
+  // ------------------------------------------------------------------ LEGIBILIDADE (estimativa; não bloqueia)
+  /* Índice de Flesch adaptado ao português (Martins et al., 1996): 248,835 - 1,015 x (palavras por frase) - 84,6 x (sílabas por palavra).
+     Sílabas contadas por grupos de vogais (aproximação: hiatos contam como um só grupo). Ficam de fora a fonte, o contato, os links, as
+     tabelas, os tópicos e as notas-padrão sobre a pesquisa: o que se mede é o texto que a pessoa escreve ou edita. */
+  const silabasPt = w => { const g = semAcento(String(w).toLowerCase()).match(/[aeiouy]+/g); return Math.max(1, g ? g.length : 1); };
+  M.legibilidade = function (texto, E) {
+    const md = M.midia(E.midia);
+    let plano = md.formato === 'md' ? planoDeMd(texto) : String(texto);
+    for (const n of [NOTA_MINIMA, NOTA_EXTRA, NOTA_MOVEL]) plano = plano.split(n).join(' ');
+    plano = plano.split('\n').filter(l => { const q = l.trim(); return q && !/^(Fontes?:|Mais informações|Contato|Sobre a pesquisa|\[)/i.test(q) && !/^[|•]/.test(q); }).join('\n').replace(/https?:\/\/\S+/g, ' ');
+    const fs = [].concat(...frases(plano));
+    const toks = fr => fr.match(/[0-9A-Za-zÀ-ÿ]+/g) || [];
+    const alfa = [].concat(...fs.map(toks)).filter(w => !/\d/.test(w));
+    const W = [].concat(...fs.map(toks)).length, S = fs.filter(fr => toks(fr).length).length;
+    if (S < 1 || alfa.length < 1) return { frases: S, palavras: W, media: 0, flesch: null, nivel: '', longas: [] };
+    const sil = alfa.reduce((a, w) => a + silabasPt(w), 0);
+    const flesch = Math.round(248.835 - 1.015 * (W / S) - 84.6 * (sil / alfa.length));
+    const nivel = flesch >= 75 ? 'muito fácil' : flesch >= 50 ? 'fácil' : flesch >= 25 ? 'difícil' : 'muito difícil';
+    const longas = fs.filter(fr => toks(fr).length > 55).map(fr => fr.slice(0, 70) + '…');
+    return { frases: S, palavras: W, media: Math.round(W / S * 10) / 10, flesch, nivel, longas };
+  };
+
   // ------------------------------------------------------------------ CONFERÊNCIA (antes de exportar)
   const RE_TENDENCIA = /\b(subiu|subiram|sobe|sobem|subir|subindo|cresceu|cresceram|cresce|crescem|crescer|crescimento|aumentou|aumentaram|aumenta|aumentam|aumento|avancou|avancaram|avanca|avancam|avanco|recuou|recuaram|recua|recuam|recuo|caiu|cairam|cai|caem|queda|quedas|diminuiu|diminuiram|diminui|diminuem|diminuicao|reduziu|reduziram|reduz|reducao|alta|altas)\b/;
   const RE_ESTAVEL = /\b(estavel|estaveis|nao apresentou variacao estatisticamente significativa|nao apresentaram variacao estatisticamente significativa)\b/;
@@ -1167,6 +1264,13 @@ const RELEASE_MODELOS = (() => {
     const intenso = RE_INTENSO.exec(norm.replace(/\b(precisao|cv|classifica)\b[^.]{0,60}?\b(otima|otimo)\b/g, ' ')), recorde = /\brecorde\w*/.test(norm) && !doc.recorde;
     add('estilo', !intenso && !recorde && semAsp.indexOf('!') < 0 && !RE_EMOJI.test(plano) && !RE_PRIMEIRA.test(norm), 'Sem adjetivo valorativo, "recorde" sem série, exclamação, emoji ou primeira pessoa', true,
       intenso ? intenso[0] : recorde ? 'recorde' : semAsp.indexOf('!') >= 0 ? 'exclamação' : RE_EMOJI.test(plano) ? 'emoji' : RE_PRIMEIRA.test(norm) ? 'primeira pessoa' : '');
+    // 5b) leitura: aviso (não bloqueia) quando o texto fica pesado para o público ou tem frase muito longa
+    const lg = M.legibilidade(texto, E);
+    if (lg.flesch !== null && lg.frases >= 3 && ['x', 'whatsapp'].indexOf(E.midia) < 0) {
+      const minimo = E.publico === 'geral' ? 35 : E.publico === 'imprensa' ? 25 : 10;
+      add('leitura', lg.flesch >= minimo && !lg.longas.length, `Leitura ${lg.nivel} (índice de Flesch para o português: ${lg.flesch}; ${String(lg.media).replace('.', ',')} palavras por frase)`, false,
+        lg.longas.length ? 'Frase com mais de 55 palavras: ' + lg.longas.slice(0, 2).join(' | ') : lg.flesch < minimo ? 'Texto pesado para este público: frases mais curtas ajudam (a precisão do texto continua a mesma).' : '');
+    }
     // 6) trimestre móvel / "trimestre encerrado" fora do Brasil
     const movelUf = F.terr.id !== 'brasil' && (E.familia === 'movel' || /trimestre encerrado/.test(norm));
     add('movel', !movelUf, 'Trimestre móvel e "trimestre encerrado em" só para o Brasil', true);

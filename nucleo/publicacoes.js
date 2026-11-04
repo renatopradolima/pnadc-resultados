@@ -911,7 +911,7 @@ const PUBLICACOES = (() => {
     // alerta de publicação nova / revisão: o que era novo NA CHEGADA; abrir a página marca como visto
     if (typeof NOVIDADES !== 'undefined') U.anexar(cont, NOVIDADES.blocoResultados(D));
     const ufSigla = D.uf.sigla || D.uf.nome;
-    const rotuloSec = s => (s.id === 'uf' ? (D.uf.nome || ufSigla) : s.id === 'regioes' ? `${s.rot} (${nomeLocal('N2', D.regiao.codigo) || '—'} em destaque)` : s.rot);
+    const rotuloSec = s => (s.id === 'uf' ? (D.uf.nome || ufSigla || 'UFs') : s.id === 'regioes' ? (nomeLocal('N2', D.regiao.codigo) ? `${s.rot} (${nomeLocal('N2', D.regiao.codigo)} em destaque)` : s.rot) : s.rot);
     // com o menu lateral do hospedeiro (casca), Comparar períodos e Gerar release moram lá: aqui só as seções de Resultados
     const doMenu = !!AMBIENTE.menuTemAreas, abas = secoes.filter(s => !(doMenu && (s.id === 'comparar' || s.id === 'release')));
     if (!(doMenu && (sec === 'comparar' || sec === 'release'))) cont.append(U.el('nav', { class: 'mo-secoes', 'aria-label': 'Seções de Resultados' },

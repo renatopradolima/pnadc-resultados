@@ -553,7 +553,28 @@ ${figs}
   }
   const passoPublico = () => [radio('rel-pub', RM.PUBLICOS, ST.E.publico, v => mudar(E => { E.publico = v; }, true))];
   const passoMidia = () => [radio('rel-mid', RM.MIDIAS, ST.E.midia, v => mudar(E => { E.midia = v; }, true))];
-  const passoEstilo = () => [radio('rel-est', RM.ESTILOS, ST.E.estilo, v => mudar(E => { E.estilo = v; if (v === 'didatico') E.extras.entenda = true; }, true))];
+  function passoEstilo(D, F) {
+    const out = [radio('rel-est', RM.ESTILOS, ST.E.estilo, v => mudar(E => { E.estilo = v; if (v === 'didatico') E.extras.entenda = true; }, true))];
+    const jornal = ST.E.midia === 'site' || ST.E.midia === 'impresso';
+    const A = jornal && F && F.lide ? RM.alternativas(F) : null;
+    out.push(U.el('div', { style: { fontWeight: 700, fontSize: '14px', margin: '16px 0 2px' } }, 'Alternativas de redação'));
+    if (!A) {
+      out.push(U.el('div', { class: 'mini-info' }, 'Manchete, linha fina e abertura alternativas aparecem para Site e Jornal (passo 5), com um indicador de destaque válido.'));
+      return out;
+    }
+    out.push(U.el('div', { class: 'mini-info', style: { marginBottom: '4px' } }, 'Escolha a redação de cada parte; a prévia muda na hora. Todas usam só números publicados, o mesmo critério de significância e passam pela mesma conferência (passo 10).'));
+    const sel = ST.E.extras.alt || {};
+    const grupo = (chave, rotulo, lista) => {
+      if (lista.length < 2) return;
+      const atual = (lista.find(a => a.id === sel[chave]) || lista[0]).id;
+      out.push(U.el('div', { style: { fontWeight: 600, fontSize: '12.5px', margin: '12px 0 4px' } }, rotulo),
+        radio('rel-alt-' + chave, lista.map(a => ({ id: a.id, rot: a.rot, desc: `${a.texto}  ·  ${a.nota}` })), atual, v => mudar(E => { E.extras.alt[chave] = v; }, true)));
+    };
+    grupo('titulo', 'Manchete', A.titulo);
+    grupo('linhaFina', 'Linha fina', A.linhaFina);
+    grupo('lide', 'Abertura (lide)', A.lide);
+    return out;
+  }
   function passoTamanho(D, F, doc) {
     const md = RM.midia(ST.E.midia), m = doc.metricas || {};
     let corpo;

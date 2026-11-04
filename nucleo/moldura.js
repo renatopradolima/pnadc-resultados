@@ -199,9 +199,9 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
   .mo-hero h2 { font-size: 18px; } .mo-hero p { font-size: 12.5px; }
   .mo-hero-acoes > * { flex: 1 1 calc(50% - 8px); justify-content: center; }
   .mo-hero-selos { gap: 6px; margin-top: 10px; } .mo-selo { font-size: 11px; padding: 4px 9px; }
-  .mo-secoes { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; padding: 4px 2px 10px; margin-left: -2px; margin-right: -2px; scrollbar-width: none; }
-  .mo-secoes::-webkit-scrollbar { display: none; }
-  .mo-secao { flex: 0 0 auto; scroll-snap-align: start; }
+  /* abas em grade de duas colunas: nada de rolagem horizontal no celular */
+  .mo-secoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow: visible; padding: 4px 2px 8px; }
+  .mo-secao { justify-content: center; text-align: center; white-space: normal; line-height: 1.2; padding: 9px 8px; font-size: 12.5px; min-width: 0; }
   .mo-cab { gap: 8px; } .mo-tit { flex-basis: calc(100% - 52px); } .mo-acoes { width: 100%; justify-content: space-between; }
   .mo-seg { flex: 1 1 auto; } .mo-seg button { flex: 1 1 auto; padding: 8px 8px; }
   .mo-btn { width: 40px; height: 40px; }

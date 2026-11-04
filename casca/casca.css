@@ -109,3 +109,15 @@ body.menu-recolhido .nav .nav-status { display: none; }
 .topo .uf-escolha select option { color: #14302a; background: #fff; }
 .topo .uf-escolha:hover { background: rgba(255,255,255,.2); }
 @keyframes girar { to { transform: rotate(360deg); } }
+/* celular: linha 1 = menu, logo, título e ícones; linha 2 = os dois seletores lado a lado */
+@media (max-width: 700px) {
+  .topo { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "menu marca marca acoes" "pub pub uf uf"; align-items: center; gap: 8px; padding: 8px 10px; }
+  .topo .btn-menu { grid-area: menu; } .topo .marca { grid-area: marca; min-width: 0; } .topo .espaco { display: none; }
+  .topo .cab-acoes { grid-area: acoes; order: 0; flex: none; justify-content: flex-end; gap: 6px; }
+  .topo .cab-acoes .mo-btn-hero, .topo .cab-acoes .btn { width: 36px; height: 36px; padding: 0; }
+  .topo .uf-escolha:nth-of-type(1) { grid-area: pub; } .topo .uf-escolha:nth-of-type(2) { grid-area: uf; }
+  .topo .uf-escolha { width: 100%; box-sizing: border-box; }
+  .topo h1 { font-size: 15px; } .topo .marca-txt small { display: none; }
+  .topo .marca svg { width: 32px; height: 32px; }
+}
+@media (max-width: 700px) { .topo .uf-escolha { font-size: 10.5px; } .topo .uf-escolha select { flex: 1 1 auto; min-width: 0; width: auto; font-size: 12px; } }

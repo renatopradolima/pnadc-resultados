@@ -234,6 +234,33 @@ JS_ROTEIRO = r"""
       const tip = document.getElementById('tip-nav');
       V.barra = { status: /Última conferência com o IBGE/.test((document.getElementById('nav-status') || { innerText: '' }).innerText), dica: !!tip && tip.style.display === 'block' && /Comparar períodos/.test(tip.textContent), aria: lk.getAttribute('aria-label') };
       lk.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+
+      // ---- alternativas de redação: toda combinação passa pela conferência (nenhum bloqueio), a escolha muda o texto e a padrão é a de sempre
+      const RMo = RELEASE_MODELOS, Dd = PUBLICACOES.dados();
+      V.alt = { territorios: {} };
+      for (const terr of ['uf', 'regiao', 'brasil', 'capital']) {
+        const E0 = RMo.normalizar(Object.assign(RMo.padrao('2026-12-31'), { territorio: terr, midia: 'site', tamanho: 'padrao' }));
+        const F0 = RMo.montarFatos(Dd, E0);
+        if (!F0.lide) { V.alt.territorios[terr] = { sem_lide: true }; continue; }
+        const A = RMo.alternativas(F0);
+        const rel = { n_titulo: A.titulo.length, n_fina: A.linhaFina.length, n_lide: A.lide.length, combos: 0, falhas: [], igual_padrao: false, mudou: false, vazios: 0 };
+        const gera = alt => { const E = RMo.normalizar(Object.assign({}, E0, { extras: Object.assign({}, E0.extras, { alt }) })); const F = RMo.montarFatos(Dd, E); return { F, doc: RMo.redigir(F) }; };
+        const padrao = gera({ titulo: '', linhaFina: '', lide: '' });
+        rel.igual_padrao = padrao.doc.texto === gera({ titulo: A.titulo[0].id, linhaFina: A.linhaFina[0].id, lide: A.lide[0].id }).doc.texto;
+        const marc = { numeros: true, revisao: true, aspasReais: true, alt: true };
+        for (const a of A.titulo) for (const b of A.linhaFina) for (const c of A.lide) {
+          const g = gera({ titulo: a.id, linhaFina: b.id, lide: c.id });
+          rel.combos++;
+          if (!g.doc.texto || /undefined|null|NaN/.test(g.doc.texto)) rel.vazios++;
+          const ruins = RMo.conferir(g.doc.texto, g.F, g.doc, marc).filter(x => !x.ok && x.bloqueia).map(x => x.id + ':' + a.id + '/' + b.id + '/' + c.id);
+          rel.falhas.push(...ruins);
+          if (g.doc.texto !== padrao.doc.texto) rel.mudou = true;
+        }
+        rel.falhas = rel.falhas.slice(0, 6);
+        V.alt.territorios[terr] = rel;
+      }
+      const lg = RMo.legibilidade('Esta frase é curta. Outra frase também é curta e fácil de ler. A terceira fecha o texto.', { midia: 'x' });
+      V.alt.leitura = { flesch: lg.flesch, nivel: lg.nivel, frases: lg.frases };
       // ---- NENHUM rótulo sobre outro nem fora da imagem: todos os mapas e gráficos de linha dos slides
       await ir('#/publicacoes?sec=uf'); await espera(300);
       const D = PUBLICACOES.dados(), sl = APRESENTACAO.slidesDe(D), sobrep = [];
@@ -400,6 +427,16 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     br = v2.get('barra') or {}
     ctx.confere(br.get('status') and br.get('dica') and br.get('aria'), (rotulo + ': barra lateral com status embaixo e dica ao passar o mouse (%r)') % (br,))
     ctx.confere(r.get('menu_inicio_estendido') and r.get('menu_recolheu'), rotulo + ': a barra lateral abre estendida e se recolhe sozinha depois de 10 s')
+
+    al = (v2.get('alt') or {}).get('territorios') or {}
+    for terr, rr in al.items():
+        if rr.get('sem_lide'):
+            continue
+        ctx.confere(rr['n_titulo'] >= 2 and rr['n_lide'] >= 2 and rr['combos'] >= 4 and rr['igual_padrao'] and rr['mudou'] and not rr['falhas'] and not rr['vazios'],
+                    (rotulo + ': alternativas de redação (%s) passam pela conferência, mudam o texto e a padrão é a de sempre (%r)') % (terr, rr))
+    ctx.confere(len(al) == 4 and any(not r.get('sem_lide') for r in al.values()), rotulo + ': alternativas testadas nos quatro recortes (%r)' % (list(al),))
+    lt = (v2.get('alt') or {}).get('leitura') or {}
+    ctx.confere(lt.get('frases') == 3 and (lt.get('flesch') or 0) > 60, (rotulo + ': índice de leitura de um texto simples (%r)') % (lt,))
     ctx.confere(not r.get('suspeitos'), (rotulo + ': nenhuma tela mostra null/undefined/NaN/[object] (%s)') % (r.get('suspeitos') or [])[:4])
     ctx.confere(r.get('contato') and r.get('contato_rodape'), rotulo + ': e-mail de contato em Sobre e no rodapé do menu')
     t = r.get('apos_trocar_uf') or {}

@@ -297,3 +297,14 @@ nenhuma tela mostra `null`/`undefined`/`NaN`. Suíte: 391 verificações, 0 falh
 (o Edge sem janela devolve vazio e deixa processo órfão).
 Pendente: README final/LICENSE para o GitHub (ver `docs/PUBLICAR_NO_GITHUB.md`) e nada do que está aqui foi commitado.
 
+
+## 12. Redação do release: alternativas e leitura (04/11/2026, núcleo 0.6.0)
+- **Alternativas de redação** (site e jornal, passo 6 "Estilo"): manchete (verbo e valor, foco na variação, número primeiro,
+  com a referência, curto, institucional), linha fina (padrão, referência primeiro, curta) e lide (padrão, território primeiro,
+  fonte primeiro, enxuto). Todas usam os MESMOS fatos e regras (verbo de tendência só com significância publicada, nada de causa,
+  diferença entre territórios só como fato aritmético) e passam pela mesma conferência. A escolha fica em `E.extras.alt`.
+  Montar as alternativas não mexe no rodízio de verbos (`semEfeito`): a prévia da alternativa é o texto que sai.
+- **Leitura** (conferência, só aviso): índice de Flesch adaptado ao português (Martins et al., 1996) e frases com mais de 55 palavras.
+- **Sem modelo de linguagem de propósito**: o produto não tem servidor nem chave e só fala com a API de agregados do IBGE;
+  texto gerado por gabarito é auditável, repetível e sem risco de número inventado. Teste: `V.alt` em `testes/casca.py`
+  (toda combinação de alternativas × 4 recortes passa pela conferência, muda o texto e a padrão é a de sempre).
