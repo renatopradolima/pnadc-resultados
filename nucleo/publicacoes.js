@@ -360,7 +360,7 @@ const PUBLICACOES = (() => {
     if (!linhas.length) { cont.append(avisoTabela(ind, fam) || U.el('div', { class: 'vazio' }, 'Nenhuma tabela do trimestre móvel no banco ainda.')); return; }
     const per = linhas.map(l => l.per).sort().pop();
     // ---- cartões-resumo, cada um com a tendência da própria série
-    const resumo = U.el('div', { class: 'grade g4', style: { marginTop: '14px' } });
+    const resumo = MOLDURA.gradeEquilibrada(U.el('div', { class: 'grade g4', style: { marginTop: '14px' } }));
     for (const i of D.indicadores) resumo.append(kpiCard(i, fam, 'N1', '1', p => `${rotPer(p.per, fam)} · Brasil, trimestre móvel`));
     cont.append(resumo);
     cont.append(barraChips(ind, 'brasil'));
@@ -510,15 +510,16 @@ const PUBLICACOES = (() => {
           const vals = ufs.map(u => (ctx.modo === 'rel' ? u.v / pbv * 100 : ctx.modo === 'dif' ? u.v - pbv : u.v));
           const fmt = v => (ctx.modo === 'rel' ? U.fmtNum(v, 1) + '%' : ctx.modo === 'dif' ? sinal(v, ' p.p.') : fmtV(ind, v));
           const cv = G.canvasEm(c, ctx.cheia ? 'mo-grafico-cheio' : 'grafico');
-          MOLDURA.estilizar(G.barras(cv, { labels: ufs.map(u => u.nome), valores: vals, horizontal: true, formato: fmt,
+          const chR = MOLDURA.estilizar(G.barras(cv, { labels: ufs.map(u => u.nome), valores: vals, horizontal: true, formato: fmt,
             cores: ufs.map(u => (u.minha ? U.COR.estrutura : u.regiao ? MOLDURA.COR.regiao : MOLDURA.COR.demais)) }));
+          MOLDURA.bandeirasNoEixo(chR, ufs.map(u => u.loc));
         } }));
       cont.append(cartaoTabela({ titulo: `Ranking das UFs — tabela`, subtitulo: `${ind.rotulo}, ${rotPer(per, fam)}`, nome: `pnadc_ufs_${ind.id}_${per}`, linhas: ufs, ordenarPor: 'pos',
         fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam)],
         ajuda: `⚠ = precisão razoável ou pior na escala do IBGE (CV acima de 15%). O intervalo é aproximado (± 1,96 × CV): o IBGE não publica teste entre UFs.`,
         colunas: [
           { chave: 'pos', rotulo: 'Posição', num: true },
-          { chave: 'nome', rotulo: 'UF', fmt: (v, l) => (l.minha ? `${v} ★` : v) },
+          { chave: 'nome', rotulo: 'UF', html: true, fmt: (v, l) => (typeof BANDEIRAS === 'undefined' ? '' : BANDEIRAS.html(l.loc)) + U.esc(l.minha ? `${v} ★` : v), fmtCsv: (v, l) => (l.minha ? `${v} ★` : v) },
           { chave: 'v', rotulo: 'Valor', num: true, fmt: v => fmtV(ind, v) },
           { chave: 'cv', rotulo: 'CV (precisão)', num: true, html: true, fmt: v => celCv(v), fmtCsv: v => fmtCv(v) },
           { chave: 'ic', rotulo: 'Intervalo aprox. 95%' },
@@ -530,7 +531,7 @@ const PUBLICACOES = (() => {
   function secUfSemDestaque(cont, ind) {
     const fam = 'trimestral';
     const sB = serie(ind, fam, 'N1', '1'), iB = ultimoIdx(sB);
-    const resumo = U.el('div', { class: 'grade g4', style: { marginTop: '14px' } });
+    const resumo = MOLDURA.gradeEquilibrada(U.el('div', { class: 'grade g4', style: { marginTop: '14px' } }));
     for (const i of D.indicadores) resumo.append(kpiCard(i, fam, 'N1', '1', p => `${rotPer(p.per, fam)} · Brasil`));
     cont.append(resumo);
     cont.append(U.el('p', { class: 'mo-dica' }, MOLDURA.icone('info', 14), 'Escolha uma UF em "UF em destaque", no alto da página, para ver o resumo, a série e a leitura dela.'));
@@ -549,7 +550,7 @@ const PUBLICACOES = (() => {
     // capital (N6) e região metropolitana (N7) da UF, quando a tabela tem
     const extras = ['N6', 'N7'].flatMap(n => Object.keys((D.series[ind.id] || {})[fam] || {}).filter(k => k.startsWith(n + '|')).map(k => ({ nivel: n, loc: k.split('|')[1] })));
     // ---- cartões-resumo (todos os indicadores), com a tendência da série da UF
-    const resumo = U.el('div', { class: 'grade g4', style: { marginTop: '14px' } });
+    const resumo = MOLDURA.gradeEquilibrada(U.el('div', { class: 'grade g4', style: { marginTop: '14px' } }));
     for (const i of D.indicadores) {
       resumo.append(kpiCard(i, fam, 'N3', uf, p => {
         const sr = serie(i, fam, 'N2', reg), sb = serie(i, fam, 'N1', '1');
@@ -676,7 +677,7 @@ const PUBLICACOES = (() => {
     }
     if (!comCap.some(i => i.id === ind.id)) ind = comCap[0];
     // ---- cartões: cada local × cada indicador que o IBGE divulga nesse nível
-    const resumo = U.el('div', { class: 'grade g4', style: { marginTop: '14px' } });
+    const resumo = MOLDURA.gradeEquilibrada(U.el('div', { class: 'grade g4', style: { marginTop: '14px' } }));
     for (const i of comCap) for (const x of locaisCap(i, fam)) {
       resumo.append(kpiCard(i, fam, x.nivel, x.loc, p => {
         const su = serie(i, fam, 'N3', uf), pu = ponto(su, idxDe(su, p.per));
@@ -964,7 +965,9 @@ const PUBLICACOES = (() => {
     const cabecalho = sec === 'comparar' ? { t: 'Comparar períodos', s: 'Escolha um território e dois períodos: a página mostra a diferença em cada indicador.' }
       : sec === 'release' ? { t: 'Gerar release', s: 'Texto, imagens, HTML e PDF prontos para divulgar a publicação em análise.' }
         : { t: 'Resultados da PNAD Contínua', s: 'Os números que o IBGE divulga — Brasil, Grandes Regiões, UF, capital e região metropolitana.' };
-    const opcHero = { titulo: cabecalho.t,
+    // no cabeçalho da casca (que já diz "PNADC Resultados") o subtítulo diz ONDE você está, não repete o nome do programa
+    const tituloCab = sec === 'comparar' ? 'Comparar períodos' : sec === 'release' ? 'Gerar release' : sec === 'brasil' ? 'Brasil' : sec === 'regioes' ? 'Grandes Regiões' : sec === 'capitais' ? 'Capital e região metropolitana' : (D && (D.uf.nome || D.uf.sigla)) || 'Unidades da Federação';
+    const opcHero = { titulo: cabecalho.t, tituloCab,
       subtitulo: cabecalho.s,
       selos: D ? [D.uf.codigo ? { rotulo: 'UF em destaque', valor: D.uf.nome || D.uf.sigla } : null, periodoRef ? { rotulo: D.referencia ? 'Publicação (anterior)' : 'Última publicação', valor: periodoRef } : null, { rotulo: 'Fonte', valor: 'IBGE · SIDRA' }].filter(Boolean) : [], acoes };
     // hospedeiro com cabeçalho próprio (casca): um cabeçalho só; sem ele (SuperC), a faixa verde da página
@@ -980,12 +983,14 @@ const PUBLICACOES = (() => {
     // alerta de publicação nova / revisão: o que era novo NA CHEGADA; abrir a página marca como visto
     if (typeof NOVIDADES !== 'undefined') U.anexar(cont, NOVIDADES.blocoResultados(D));
     const ufSigla = D.uf.sigla || D.uf.nome;
+    // Brasil e UF levam a bandeira no lugar do ícone (a miniatura vem embutida; sem rede)
+    const iconeSec = s => { const f = typeof BANDEIRAS === 'undefined' ? null : s.id === 'brasil' ? BANDEIRAS.img('BR', '15px') : s.id === 'uf' && D.uf.codigo ? BANDEIRAS.img(D.uf.codigo, '15px') : null; return f || MOLDURA.icone(s.ico, 16); };
     const rotuloSec = s => (s.id === 'uf' ? (D.uf.nome || ufSigla || 'UFs') : s.id === 'regioes' ? (nomeLocal('N2', D.regiao.codigo) ? `${s.rot} (${nomeLocal('N2', D.regiao.codigo)} em destaque)` : s.rot) : s.rot);
     // com o menu lateral do hospedeiro (casca), Comparar períodos e Gerar release moram lá: aqui só as seções de Resultados
     const doMenu = !!AMBIENTE.menuTemAreas, abas = secoes.filter(s => !(doMenu && (s.id === 'comparar' || s.id === 'release')));
     if (!(doMenu && (sec === 'comparar' || sec === 'release'))) cont.append(U.el('nav', { class: 'mo-secoes', 'aria-label': 'Seções de Resultados' },
       ...abas.map(s => U.el('a', { class: 'mo-secao' + (s.id === sec ? ' ativo' : ''), href: `#/publicacoes?sec=${s.id}` + (query && query.get('ind') && s.id !== 'comparar' ? `&ind=${encodeURIComponent(query.get('ind'))}` : ''),
-        'aria-current': s.id === sec ? 'page' : null }, MOLDURA.icone(s.ico, 16), rotuloSec(s)))));
+        'aria-current': s.id === sec ? 'page' : null }, iconeSec(s), rotuloSec(s)))));
     const semNada = !Object.keys(D.series || {}).some(k => Object.keys(D.series[k].movel || {}).length || Object.keys(D.series[k].trimestral || {}).length);
     if (semNada) {
       cont.append(U.el('div', { class: D.rede_pausada_ate ? 'aviso erro' : 'aviso' },

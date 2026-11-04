@@ -31,6 +31,8 @@ JS_ROTEIRO = r"""
     for (let i = 0; i < k.length; i++) for (let j = i + 1; j < k.length; j++) { const p = k[i].getBoundingClientRect(), q = k[j].getBoundingClientRect();
       if (Math.min(p.right, q.right) - Math.max(p.left, q.left) > 2 && Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top) > 2) sobre.push(i + 'x' + j); }
     if (sobre.length) fora.push('SOBREPOSTOS ' + sobre.join(','));
+    document.querySelectorAll('#conteudo .grade.g4, #conteudo .grade.g3').forEach(g => { const L = {}; Array.from(g.children).forEach(k => { const tp = Math.round(k.getBoundingClientRect().top); L[tp] = (L[tp] || 0) + 1; });
+      const q = Object.values(L); if (q.length && Math.max.apply(null, q) - Math.min.apply(null, q) > 1) fora.push('GRADE DESEQUILIBRADA ' + q.join('+')); });
     R.paginas[h] = { W: W, sw: document.documentElement.scrollWidth, conteudo: Math.round(document.getElementById('conteudo').getBoundingClientRect().width),
                      cartoes: document.querySelectorAll('#conteudo .mo-cartao').length, fora: fora.slice(0, 6) };
   }

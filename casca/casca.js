@@ -24,7 +24,7 @@ const AMBIENTE = (() => {
     /* cabeçalho único: a barra verde do alto da casca leva o título da página e as ações (a página não desenha outro) */
     cabecalho: opc => {
       const t = document.getElementById('cab-pagina'), a = document.getElementById('cab-acoes');
-      if (t) t.textContent = opc.titulo;
+      if (t) t.textContent = opc.tituloCab || opc.titulo;
       if (a) a.replaceChildren(...(opc.acoes || []).filter(Boolean));
     },
     mostrarStatus: el => { const alvo = document.getElementById('nav-status'); if (alvo) alvo.replaceChildren(el); }
@@ -141,7 +141,11 @@ const CASCA = (() => {
     sel.append(U.el('option', { value: '' }, 'Nenhuma'));
     FONTE.ufs().forEach(u => sel.append(U.el('option', { value: u.codigo }, `${u.nome} (${u.sigla})`)));
     sel.value = FONTE.uf().codigo;
+    // miniatura da bandeira da UF escolhida, ao lado do seletor (some em "Nenhuma")
+    const bandeira = () => { const antiga = document.getElementById('bandeira-uf'), nova = BANDEIRAS.img(sel.value, '15px'); if (antiga) antiga.remove(); if (nova) { nova.id = 'bandeira-uf'; nova.style.marginRight = '0'; sel.parentNode.insertBefore(nova, sel); } };
+    bandeira();
     sel.addEventListener('change', () => {
+      bandeira();
       sel.disabled = true;
       FONTE.definirUf(sel.value).then(() => {
         PUBLICACOES.sair();       // volta a ler o cache com a UF nova (e a baixar capitais dela, se faltarem)

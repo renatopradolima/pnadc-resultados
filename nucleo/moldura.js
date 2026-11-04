@@ -181,6 +181,9 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
   box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 6px 16px rgba(0,0,0,.35); }
 .mo-ponto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 1px 3px rgba(16,42,35,.35); flex: 0 0 auto; }
 .mo-pagina .chip { align-items: center; }
+.mo-flag { height: 1.05em; width: auto; border-radius: 2px; vertical-align: -0.17em; margin-right: 6px; box-shadow: 0 0 0 1px rgba(16,42,35,.28), 0 1px 3px rgba(16,42,35,.22); background: #fff; }
+.mo-secao .mo-flag { height: 15px; margin-right: 0; }
+@media (min-width: 1500px) { .mo-pagina .grade .kpi .valor { font-size: clamp(26px, 1.9vw, 38px); } .mo-pagina .grade .kpi { padding-top: 18px; padding-bottom: 14px; } }
 /* ---- tela grande: duas colunas (os cartões "meia" ficam lado a lado; o resto ocupa a largura toda) ---- */
 @media (min-width: 1500px) {
   .mo-pagina { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 16px; align-items: start; }
@@ -666,8 +669,49 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
      Verde e vermelho ficam reservados à situação publicada pelo IBGE (significativa); "estavel" é o neutro azul-ardósia. */
   const COR = { foco: '#1a5fb4', regiao: '#5b9bd5', demais: '#8fb7e6', estavel: '#8199ad', brasil: '#37474f', capital: '#00897b', rm: '#7e57c2' };
 
+  /* GRADE EQUILIBRADA: nunca deixa uma linha cheia e outra com um ou dois cartões. Com a largura disponível, calcula quantos cartões cabem
+     por linha (cada um com pelo menos `min` px); com isso fixa o número de linhas e reparte os cartões por igual entre elas
+     (8 cartões numa tela larga: 4 + 4, não 6 + 2). No celular quem manda é o CSS (duas colunas). */
+  function gradeEquilibrada(el, minLarg) {
+    const min = minLarg || 230, folga = 14;
+    const aplicar = () => {
+      const n = el.children.length, W = el.clientWidth;
+      if (!n || !W) return;
+      if (window.innerWidth <= 700) { el.style.gridTemplateColumns = ''; return; }
+      const cabem = Math.max(1, Math.floor((W + folga) / (min + folga))), linhas = Math.ceil(n / cabem), cols = Math.ceil(n / linhas);
+      const novo = `repeat(${cols}, minmax(0, 1fr))`;
+      if (el.style.gridTemplateColumns !== novo) el.style.gridTemplateColumns = novo;
+    };
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(aplicar).observe(el); else window.addEventListener('resize', aplicar);
+    setTimeout(aplicar, 0);
+    return el;
+  }
+  /* BANDEIRAS no eixo de nomes de um gráfico de barras horizontais: abre espaço ao lado do rótulo e desenha a miniatura de cada UF */
+  const pluginBandeiras = { id: 'bandeiras', afterDraw(ch) {
+    const o = ch.options.plugins && ch.options.plugins.bandeiras, y = ch.scales && ch.scales.y;
+    if (!o || !o.codigos || !y || typeof BANDEIRAS === 'undefined') return;
+    const h = o.altura || 14, ctx = ch.ctx;
+    // UMA função de redesenho por gráfico, que junta vários pedidos num só quadro (antes, cada bandeira ainda não carregada pedia um redesenho a cada quadro)
+    if (!ch._bRedesenhar) ch._bRedesenhar = () => { if (ch._bQuadro) return; ch._bQuadro = requestAnimationFrame(() => { ch._bQuadro = 0; if (ch.ctx) ch.draw(); }); };
+    o.codigos.forEach((cod, i) => {
+      const im = BANDEIRAS.imagem(cod, ch._bRedesenhar);
+      if (!im) return;
+      const w = Math.round(h * im.naturalWidth / im.naturalHeight), x = ch.chartArea.left - 7 - w, py = Math.round(y.getPixelForTick(i) - h / 2);
+      ctx.save(); ctx.drawImage(im, x, py, w, h); ctx.strokeStyle = 'rgba(16,42,35,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x - .5, py - .5, w + 1, h + 1); ctx.restore();
+    });
+  } };
+  if (typeof Chart !== 'undefined' && Chart.register) { try { Chart.register(pluginBandeiras); } catch (e) { /* já registrado */ } }
+  function bandeirasNoEixo(ch, codigos, altura) {
+    if (!ch || typeof BANDEIRAS === 'undefined') return ch;
+    const h = altura || 14;
+    ch.options.scales.y.ticks.padding = Math.round(h * 1.5) + 12;
+    ch.options.plugins.bandeiras = { codigos, altura: h };
+    ch.update();
+    return ch;
+  }
+
   injetarCss();
   ligarDicas();
-  return { COR, cartao, faixaSlider, icone, logo, desenharLogo, hero, botaoHero, seg, sparkline, estilizar, injetarCss, fecharCheia, imagemDoCartao, compor, baixarCanvas, nomeArq,
+  return { gradeEquilibrada, bandeirasNoEixo, COR, cartao, faixaSlider, icone, logo, desenharLogo, hero, botaoHero, seg, sparkline, estilizar, injetarCss, fecharCheia, imagemDoCartao, compor, baixarCanvas, nomeArq,
     tabelaParaCanvas, quebrar, hojeBr, modoLembrado, lembrarModo, ICONES, _cheiaAberta: () => !!aberta };
 })();

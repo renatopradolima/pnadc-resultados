@@ -334,3 +334,13 @@ Pendente: README final/LICENSE para o GitHub (ver `docs/PUBLICAR_NO_GITHUB.md`) 
   cada lado; três unidades = não cabe em dois eixos, então o cartão abre no modo **Índice (base 100 no primeiro período em foco)**, que serve para qualquer
   mistura e mostra ritmo de variação, não nível. Sem cor de significância: não há comparação entre dois períodos neste gráfico.
 - Teste: `V.multi` em `testes/casca.py` (um eixo, dois eixos, índice começando em 100 e clique mudando o endereço).
+
+## 16. Bandeiras e grades equilibradas (04/11/2026)
+- **Bandeiras** do Brasil e das 27 UFs ao lado do nome: abas Brasil/UF, seletor de UF do cabeçalho, eixo do gráfico de ranking das UFs e tabela do
+  ranking. 28 miniaturas de 64 px (43 KB no total) embutidas em `nucleo/bandeiras.js` (gerado; Wikimedia Commons, domínio público); nada é baixado em uso.
+  Cada `<img>` usa uma URL `blob:` curta (criada uma vez), não o base64 repetido; as imagens são decodificadas na abertura.
+- **Lição de desempenho**: a 1ª versão do desenho das bandeiras no gráfico pedia um redesenho por bandeira ainda não carregada a cada quadro, e os pedidos
+  se multiplicavam (a página UF travava). Agora há UMA função de redesenho por gráfico, juntada num quadro (`requestAnimationFrame`).
+- **Grade equilibrada** (`MOLDURA.gradeEquilibrada`): os cartões-resumo se repartem por igual entre as linhas (8 cartões em tela larga = 4 + 4, nunca
+  6 + 2). Regra geral para toda grade de cartões: calcular quantos cabem, fixar o número de linhas e dividir por igual. `testes/responsivo.py` falha se
+  duas linhas diferirem em mais de um cartão.

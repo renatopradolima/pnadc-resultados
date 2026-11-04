@@ -31,3 +31,10 @@ Fonte: <https://www.chartjs.org/> · <https://github.com/chartjs/Chart.js>
 Os números exibidos e as respostas gravadas em `testes/gravados/` vêm da API pública de agregados do IBGE
 (`servicodados.ibge.gov.br`, a base do SIDRA). Este projeto **não é um produto oficial do IBGE** e não usa a marca
 do IBGE. Ao divulgar números, cite a fonte: *IBGE, Pesquisa Nacional por Amostra de Domicílios Contínua (PNAD Contínua)*.
+
+## Bandeiras do Brasil e das 27 UFs
+
+Miniaturas (PNG de 64 px de largura, paleta reduzida) das bandeiras oficiais, embutidas em `nucleo/bandeiras.js` (gerado por `scripts/gerar_bandeiras.py`).
+Origem: Wikimedia Commons (<https://commons.wikimedia.org/>), onde todos os arquivos usados estão marcados como **domínio público** (símbolos oficiais).
+A lista completa, com o nome do arquivo, a licença e o endereço da página de cada bandeira, está em `nucleo/bandeiras.js` (`BANDEIRAS.FONTES`).
+O programa não busca nenhuma imagem na rede: as miniaturas fazem parte do próprio arquivo.

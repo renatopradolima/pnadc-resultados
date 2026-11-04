@@ -314,6 +314,17 @@ JS_ROTEIRO = r"""
         if (alvo) { alvo.click(); await espera(500); }
         V.multi.clique = { mudou: location.hash !== antes, tem: /v=[^&]*,/.test(location.hash) };
       }
+
+      // ---- bandeiras: 28 miniaturas embutidas, reconhecidas por código, sigla ou nome, e usadas ao lado do nome (abas, seletor e tabela do ranking)
+      await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(500);
+      { const c = document.getElementById('conteudo');
+        V.bandeiras = { total: BANDEIRAS.FONTES.length, urls: new Set(BANDEIRAS.FONTES.map(f => BANDEIRAS.url(f.codigo))).size, por_nome: BANDEIRAS.codigo('Rondônia'), por_sigla: BANDEIRAS.codigo('RO'), por_rotulo: BANDEIRAS.codigo('Rondônia (RO)'),
+          por_n3: BANDEIRAS.codigo('N3|11'), brasil: BANDEIRAS.codigo('Brasil'), desconhecido: BANDEIRAS.codigo('Região Norte') === '' && BANDEIRAS.img('Atlântida') === null,
+          abas: c.querySelectorAll('.mo-secoes .mo-flag').length, cabecalho: !!document.getElementById('bandeira-uf'), tabela: c.querySelectorAll('table.tabela .mo-flag').length,
+          sem_rede: Array.from(document.querySelectorAll('.mo-flag')).every(i => /^(blob:|data:image\/png;base64,)/.test(i.getAttribute('src'))) }; }
+      // grades de cartões equilibradas: nenhuma linha com mais de um cartão a mais que outra
+      for (const sec of ['brasil', 'uf', 'capitais']) { await ir('#/publicacoes?sec=' + sec); await espera(500);
+        V.bandeiras['grade_' + sec] = Array.from(document.querySelectorAll('#conteudo .grade.g4')).map(g => { const linhas = {}; Array.from(g.children).forEach(k => { const t = Math.round(k.getBoundingClientRect().top); linhas[t] = (linhas[t] || 0) + 1; }); const q = Object.values(linhas); return { n: g.children.length, linhas: q.join('+'), ok: q.length > 0 && Math.max.apply(null, q) - Math.min.apply(null, q) <= 1 }; }); }
       // ---- NENHUM rótulo sobre outro nem fora da imagem: todos os mapas e gráficos de linha dos slides
       await ir('#/publicacoes?sec=uf'); await espera(300);
       const D = PUBLICACOES.dados(), sl = APRESENTACAO.slidesDe(D), sobrep = [];
@@ -490,8 +501,8 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere('Versão do núcleo' in (r.get('sobre') or '') and 'Armazenamento' in (r.get('sobre') or ''), rotulo + ': página Sobre')
 
     v = r.get('visual') or {}
-    ctx.confere(v.get('hero') and 'significância' not in (v.get('subtitulo') or '') and v.get('subtitulo') == 'Resultados da PNAD Contínua',
-                (rotulo + ': cabeçalho único (barra verde) com o título da página (%r)') % (v.get('subtitulo'),))
+    ctx.confere(v.get('hero') and 'significância' not in (v.get('subtitulo') or '') and v.get('subtitulo') and 'PNAD' not in v.get('subtitulo'),
+                (rotulo + ': cabeçalho único (barra verde) com o lugar onde você está, sem repetir o nome do programa (%r)') % (v.get('subtitulo'),))
     ctx.confere(all(x in (v.get('hero_botoes') or []) for x in ('Apresentar', 'PDF', 'Atualizar com o IBGE')) and (v.get('hero_botoes') or []).count('Gerar release') == 0,
                 (rotulo + ': botões do cabeçalho, sem "Gerar release" repetido (%r)') % (v.get('hero_botoes'),))
     ctx.confere('Capital e RM' in (v.get('secoes') or []) and 'Comparar períodos' not in (v.get('secoes') or []), (rotulo + ': seções novas (%r)') % (v.get('secoes'),))
@@ -570,6 +581,11 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(tr.get('n') == 3 and 'Índice' in (tr.get('modo') or '') and all(abs((x or 0) - 100) < 0.2 for x in tr.get('primeiros') or [0]) and len(tr.get('primeiros') or []) == 3,
                 (rotulo + ': três unidades abrem em Índice (base 100) e todas as linhas começam em 100 (%r)') % (tr,))
     ctx.confere((mu.get('clique') or {}).get('mudou') and (mu.get('clique') or {}).get('tem'), (rotulo + ': clicar numa variável muda a seleção no endereço (%r)') % (mu.get('clique'),))
+    bd = (v2.get('bandeiras') or {})
+    ctx.confere(bd.get('total') == 28 and bd.get('urls') == 28 and bd.get('por_nome') == '11' and bd.get('por_sigla') == '11' and bd.get('por_rotulo') == '11' and bd.get('por_n3') == '11' and bd.get('brasil') == 'BR' and bd.get('desconhecido'),
+                (rotulo + ': 28 bandeiras distintas, reconhecidas por código, sigla ou nome (%r)') % ({k: v for k, v in bd.items() if not k.startswith('grade_')},))
+    ctx.confere(bd.get('abas', 0) >= 2 and bd.get('cabecalho') and bd.get('tabela', 0) >= 27 and bd.get('sem_rede'), (rotulo + ': bandeira nas abas Brasil e UF, ao lado do seletor e na tabela do ranking, todas embutidas (%r)') % ({k: bd.get(k) for k in ('abas', 'cabecalho', 'tabela', 'sem_rede')},))
+    ctx.confere(all(g['ok'] for k in ('grade_brasil', 'grade_uf', 'grade_capitais') for g in bd.get(k, [])) and bd.get('grade_uf'), (rotulo + ': cartões-resumo equilibrados por linha (%r)') % ({k: v for k, v in bd.items() if k.startswith('grade_')},))
     ctx.confere(not r.get('suspeitos'), (rotulo + ': nenhuma tela mostra null/undefined/NaN/[object] (%s)') % (r.get('suspeitos') or [])[:4])
     ctx.confere(r.get('contato') and r.get('contato_rodape'), rotulo + ': e-mail de contato em Sobre e no rodapé do menu')
     t = r.get('apos_trocar_uf') or {}
