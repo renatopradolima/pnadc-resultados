@@ -179,6 +179,8 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
 .mo-pagina .rel-previa iframe, .mo-pagina .rel-previa .rel-doc { border-radius: 12px; box-shadow: inset 0 1px 4px rgba(16,42,35,.12); }
 .mo-tip { position: fixed; z-index: 100000; display: none; max-width: 260px; padding: 6px 10px; border-radius: 9px; background: linear-gradient(180deg, #1d3a2f, #0f2a20); color: #fff; font-size: 12px; font-weight: 600; line-height: 1.35; pointer-events: none;
   box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 6px 16px rgba(0,0,0,.35); }
+.mo-ponto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 1px 3px rgba(16,42,35,.35); flex: 0 0 auto; }
+.mo-pagina .chip { align-items: center; }
 /* ---- tela grande: duas colunas (os cartões "meia" ficam lado a lado; o resto ocupa a largura toda) ---- */
 @media (min-width: 1500px) {
   .mo-pagina { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 16px; align-items: start; }

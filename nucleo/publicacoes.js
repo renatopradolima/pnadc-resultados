@@ -763,7 +763,10 @@ const PUBLICACOES = (() => {
     const b = pers.indexOf(query && query.get('b')) >= 0 ? query.get('b') : ultimo;
     const a = pers.indexOf(query && query.get('a')) >= 0 ? query.get('a') : (pers.indexOf(perAno(b)) >= 0 ? perAno(b) : pers[0]);
     // ---- controles
-    const ir = (ter, pa, pb) => { location.hash = `#/publicacoes?sec=comparar&ter=${encodeURIComponent(ter)}&a=${pa}&b=${pb}`; };
+    const PADRAO_MULTI = ['desocupacao', 'informalidade', 'subutilizacao'];
+    const idsPedidos = ((query && query.get('v')) || '').split(',').filter(id => D.indicadores.some(i => i.id === id));
+    const vSel = idsPedidos.length ? idsPedidos.slice(0, 6) : PADRAO_MULTI.filter(id => D.indicadores.some(i => i.id === id));
+    const ir = (ter, pa, pb, vs) => { location.hash = `#/publicacoes?sec=comparar&ter=${encodeURIComponent(ter)}&a=${pa}&b=${pb}&v=${(vs || vSel).join(',')}`; };
     const sel = (rotulo, opcoes, atual, aoMudar) => {
       const s = U.el('select', {}, ...opcoes.map(o => U.el('option', { value: o[0] }, o[1])));
       s.value = atual; s.onchange = () => aoMudar(s.value);
@@ -802,6 +805,70 @@ const PUBLICACOES = (() => {
           formato: v => (ctx.modo === 'abs' ? sinal(v, ' p.p.') : sinal(v, '%')),
           cores: lista.map(l => (l.cmp.publicada && (l.cmp.estado === 'alta' || l.cmp.estado === 'queda') ? l.cmp.cor : MOLDURA.COR.estavel)) }));
       } }));
+
+    // ---- várias variáveis no MESMO gráfico: a série do território escolhido, com as variáveis marcadas
+    /* Combinações possíveis (e por quê):
+       - mesma unidade (taxas, em %): um eixo só; vale qualquer mistura das seis taxas;
+       - duas unidades (ex.: taxas + rendimento em R$, ou taxas + pessoas ocupadas em mil): dois eixos, um de cada lado;
+       - três unidades (%, R$ e mil pessoas): dois eixos não bastam; o modo "Índice" (primeiro período em foco = 100) põe qualquer mistura na mesma escala.
+       O índice mostra ritmo de variação, não nível: diz quem subiu ou caiu mais desde o início do recorte (o slider muda a base). */
+    {
+      const COR_IND = { desocupacao: '#1a5fb4', ocupacao: '#00897b', participacao: '#7e57c2', informalidade: '#ef8a17', subutilizacao: '#c2185b', desalento: '#8d6e63', rendimento: '#546e7a', ocupados: '#00acc1' };
+      const disp = D.indicadores.filter(i => serieT(i)), sel2 = vSel.filter(id => disp.some(i => i.id === id));
+      const escolhidos = disp.filter(i => sel2.indexOf(i.id) >= 0);
+      if (escolhidos.length) {
+        const rotsPer = pers.map(p => rotPer(p, fam, true));
+        const unidades = Array.from(new Set(escolhidos.map(i => UNID(i))));
+        const alternar = id => {
+          const n = sel2.indexOf(id) >= 0 ? sel2.filter(x => x !== id) : sel2.concat([id]);
+          if (!n.length) { AMBIENTE.toast('Deixe pelo menos uma variável no gráfico.', '', 4000); return; }
+          if (n.length > 6) { AMBIENTE.toast('No máximo seis variáveis no mesmo gráfico, para o gráfico continuar legível.', '', 5000); return; }
+          ir(t.id, a, b, n);
+        };
+        const chips = U.el('div', { class: 'chips', role: 'group', 'aria-label': 'Variáveis no gráfico', style: { margin: '2px 0 8px' } },
+          ...disp.map(i => U.el('button', { type: 'button', class: 'chip' + (sel2.indexOf(i.id) >= 0 ? ' ativo' : ''), 'aria-pressed': sel2.indexOf(i.id) >= 0 ? 'true' : 'false', title: `${i.rotulo} (${UNID(i)})`, onclick: () => alternar(i.id) },
+            U.el('span', { class: 'mo-ponto', style: { background: COR_IND[i.id] || '#78909c' } }), i.curto)));
+        const PRESETS = [['Taxas do mercado de trabalho', ['desocupacao', 'ocupacao', 'participacao']], ['Falta de trabalho', ['desocupacao', 'subutilizacao', 'desalento']],
+          ['Qualidade da ocupação', ['informalidade', 'subutilizacao']], ['Taxas e rendimento', ['desocupacao', 'informalidade', 'rendimento']], ['Tudo em índice', disp.map(i => i.id).slice(0, 6)]]
+          .map(x => [x[0], x[1].filter(id => disp.some(i => i.id === id))]).filter(x => x[1].length >= 2);
+        const presets = U.el('div', { class: 'mini-info', style: { margin: '0 0 8px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' } }, 'Combinações sugeridas:',
+          ...PRESETS.map(x => U.el('button', { type: 'button', class: 'btn pequeno', onclick: () => ir(t.id, a, b, x[1]) }, x[0])));
+        const dica = unidades.length === 1 ? `Todas em ${unidades[0]}: um eixo só.` : unidades.length === 2 ? `Duas unidades (${unidades.join(' e ')}): um eixo de cada lado.` : `Três unidades (${unidades.join(', ')}): use o modo Índice; dois eixos não bastam.`;
+        const sup = U.el('div', {}, presets, chips, U.el('div', { class: 'mini-info' }, dica + ' Clique nas variáveis para incluir ou tirar (até seis); clique na legenda do gráfico para esconder uma delas sem tirá-la.'));
+        const fmtEixo = i => (v => (i.tipo === 'taxa' ? U.fmtNum(v, 1) + '%' : i.tipo === 'rendimento' ? 'R$ ' + U.fmtInt(v) : U.fmtInt(v) + ' mil'));
+        cont.append(MOLDURA.cartao({ titulo: `${t.nome}: ${escolhidos.map(i => i.curto).join(' × ')}`, icone: 'linha', nome: `pnadc_comparar_variaveis_${t.id}`, chave: 'comparar.multi', superior: [sup], faixa: { rotulos: rotsPer },
+          modos: (unidades.length > 2 ? [{ valor: 'indice', rotulo: 'Índice (base 100)', dica: 'Primeiro período em foco = 100: compara o ritmo de variação, em qualquer unidade' }, { valor: 'valores', rotulo: 'Valores', dica: 'Valores publicados, com um eixo por unidade (até duas unidades)' }]
+            : [{ valor: 'valores', rotulo: 'Valores', dica: 'Valores publicados, com um eixo por unidade (até duas unidades)' }, { valor: 'indice', rotulo: 'Índice (base 100)', dica: 'Primeiro período em foco = 100: compara o ritmo de variação, em qualquer unidade' }]),
+          subtituloDe: (m, f) => (m === 'indice' ? 'Índice: o primeiro período em foco vale 100; mostra quem subiu ou caiu mais, não o nível' : 'Valores publicados de cada variável' + (unidades.length === 2 ? ', um eixo por unidade' : ` (${unidades[0]})`)) + (f && (f[0] > 0 || f[1] < rotsPer.length - 1) ? ` · ${rotsPer[f[0]]} a ${rotsPer[f[1]]}` : ''),
+          fonteImagem: 'Fonte: IBGE, PNAD Contínua (SIDRA). Cada linha é uma variável; sem cor de significância, porque aqui não há comparação entre dois períodos.',
+          desenhar: (c, ctx) => {
+            if (ctx.modo === 'valores' && unidades.length > 2) { c.append(U.el('div', { class: 'mo-vazio' }, `Há ${unidades.length} unidades diferentes (${unidades.join(', ')}): dois eixos não bastam. Use o modo Índice (base 100) ou tire uma variável.`)); return; }
+            const f = ctx.faixa || [0, rotsPer.length - 1], corta = x => x.slice(f[0], f[1] + 1);
+            const eixos = ctx.modo === 'valores' && unidades.length === 2 ? unidades : [unidades[0]];
+            const defs = escolhidos.map((i, k) => {
+              let dados = corta(alinharA(serieT(i), pers, 'v'));
+              if (ctx.modo === 'indice') { const base0 = dados.find(v => v !== null && v !== undefined && v !== 0); dados = dados.map(v => (v === null || v === undefined || base0 === undefined ? null : v / base0 * 100)); }
+              return { i, rotulo: i.curto + (ctx.modo === 'valores' ? ` (${UNID(i)})` : ''), dados, cor: COR_IND[i.id] || U.PALETA[k % U.PALETA.length], eixo: eixos.length === 2 && UNID(i) === eixos[1] ? 'y1' : 'y' };
+            });
+            const fmtDs = d => (ctx.modo === 'indice' ? (v => U.fmtNum(v, 1)) : (v => fmtV(d.i, v)));
+            const cv = G.canvasEm(c, ctx.cheia ? 'mo-grafico-cheio' : 'mo-grafico alto');
+            const ch = G.linha(cv, { labels: corta(rotsPer), series: defs.map(d => ({ rotulo: d.rotulo, dados: d.dados, cor: d.cor })), formato: v => (ctx.modo === 'indice' ? U.fmtNum(v, 1) : fmtV(defs[0].i, v)),
+              formatoEixo: ctx.modo === 'indice' ? (v => U.fmtNum(v, 0)) : fmtEixo(defs[0].i), doZero: ctx.modo !== 'indice', legenda: true });
+            ch.options.plugins.tooltip.callbacks.label = x => `${x.dataset.label}: ${fmtDs(defs[x.datasetIndex])(x.raw)}`;
+            if (ctx.modo === 'valores') {
+              const primeiro = defs.find(d => d.eixo === 'y').i, segundo = (defs.find(d => d.eixo === 'y1') || {}).i;
+              ch.options.scales.y.title = { display: eixos.length === 2, text: UNID(primeiro), color: '#486581', font: { size: 11 } };
+              ch.options.scales.y.ticks.callback = fmtEixo(primeiro);
+              if (segundo) {
+                defs.forEach((d, k) => { ch.data.datasets[k].yAxisID = d.eixo; });
+                ch.options.scales.y1 = { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { callback: fmtEixo(segundo) }, title: { display: true, text: UNID(segundo), color: '#486581', font: { size: 11 } } };
+                ch.update();
+              }
+            }
+            return MOLDURA.estilizar(ch);
+          } }));
+      }
+    }
     // ---- tabela
     cont.append(cartaoTabela({ titulo: 'Todos os indicadores', subtitulo: `${t.nome}: ${rotPer(a, fam)} → ${rotPer(b, fam)}`, nome: `pnadc_comparar_${t.id}_${a}_${b}_tabela`, linhas,
       fonteImagem: 'Fonte: IBGE, PNAD Contínua (SIDRA). Intervalo aproximado de 95% = estimativa ± 1,96 × CV; o IBGE não testa a diferença entre estes dois períodos, salvo quando indicado.',

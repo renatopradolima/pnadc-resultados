@@ -23,7 +23,7 @@ CSS = ['kit/superc.css', 'casca/casca.css']
 SCRIPTS = ['kit/chart.umd.min.js', 'kit/util.js', 'kit/glossario.js', 'kit/graficos.js',
            'nucleo/versao.js', 'nucleo/indicadores.js', 'nucleo/armazem.js', 'nucleo/sidra.js', 'nucleo/montar.js',
            'nucleo/mapa_uf.js', 'nucleo/releases_modelos.js', 'nucleo/moldura.js', 'nucleo/pdf.js', 'nucleo/docs.js', 'nucleo/publicacoes.js', 'nucleo/novidades.js', 'nucleo/releases.js', 'nucleo/apresentacao.js',
-           'casca/fonte.js', 'casca/casca.js']
+           'casca/fonte.js', 'casca/entenda.js', 'casca/casca.js']
 
 
 def ler(rel):

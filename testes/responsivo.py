@@ -10,7 +10,7 @@ from casca import JS_REDE
 TAMANHOS = [('celular', '390,844'), ('tablet', '820,1180'), ('notebook', '1366,768'), ('tela grande', '2200,1200')]
 
 PAGINAS = ['#/publicacoes?sec=brasil', '#/publicacoes?sec=regioes', '#/publicacoes?sec=uf&ind=desocupacao', '#/publicacoes?sec=capitais',
-           '#/publicacoes?sec=comparar', '#/publicacoes?sec=release&passo=1', '#/publicacoes?sec=release&passo=10', '#/sobre']
+           '#/publicacoes?sec=comparar', '#/publicacoes?sec=release&passo=1', '#/publicacoes?sec=release&passo=10', '#/entenda', '#/sobre']
 
 JS_ROTEIRO = r"""
 (function () {

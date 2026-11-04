@@ -316,3 +316,21 @@ Pendente: README final/LICENSE para o GitHub (ver `docs/PUBLICAR_NO_GITHUB.md`) 
 - Texto de dado vai como texto XML escapado (nunca marcação). Teste (`V.docs` em `testes/casca.py`): ZIP íntegro, XML bem formado, título, tabelas e
   imagens; por fora, o Python reabre os dois (zipfile + minidom), o `python-docx` abre o .docx e, se houver LibreOffice, converte ambos em PDF
   (sem LibreOffice nesta máquina: o .odt só tem a conferência de estrutura).
+
+## 14. Página "Entenda a PNADC" (04/11/2026)
+- Nova página da casca, no menu acima de "Sobre" (`casca/entenda.js`, global `ENTENDA`; rota `#/entenda`). Conta a história da pesquisa (linha do tempo),
+  compara PME × PNAD × PNAD Contínua, explica a amostra (2 estágios, UPAs, rotação 1-2(5) em figura), a semana de referência, o que é força de trabalho
+  (figura + fluxo de classificação + exemplo com os números do Brasil do cache), os indicadores com fórmulas, desocupação, subocupação, força de trabalho
+  potencial, desalento e as taxas de subutilização, informalidade, rendimento e precisão/significância.
+- Todo trecho cita a fonte em [n]; a lista no fim tem link oficial (IBGE e OIT). Base principal: Notas Metodológicas v.1 (2014), Nota Técnica (2015),
+  Glossário e "Medidas de Subutilização" (4º tri/2025), lidos do FTP do IBGE. As páginas do portal (ibge.gov.br) responderam 403 à leitura automática:
+  o que depende delas (fim da PME e da PNAD anual; informalidade) está atribuído à fonte e merece conferência humana.
+- Teste: `V.entenda` em `testes/casca.py` e a página no `testes/responsivo.py` (4 larguras, sem rolagem horizontal).
+
+## 15. Comparar: várias variáveis no mesmo gráfico (04/11/2026)
+- Em "Comparar períodos", um cartão novo mostra a SÉRIE do território escolhido com até seis variáveis ao mesmo tempo (chips para incluir/tirar,
+  combinações sugeridas, slider de período, JPG e tela cheia). A seleção vai no endereço (`&v=a,b,c`).
+- Combinações: mesma unidade (taxas em %) = um eixo; duas unidades (taxas + rendimento em R$, ou taxas + pessoas ocupadas em mil) = dois eixos, um de
+  cada lado; três unidades = não cabe em dois eixos, então o cartão abre no modo **Índice (base 100 no primeiro período em foco)**, que serve para qualquer
+  mistura e mostra ritmo de variação, não nível. Sem cor de significância: não há comparação entre dois períodos neste gráfico.
+- Teste: `V.multi` em `testes/casca.py` (um eixo, dois eixos, índice começando em 100 e clique mudando o endereço).

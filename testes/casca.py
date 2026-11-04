@@ -286,6 +286,34 @@ JS_ROTEIRO = r"""
         const ex = {}; for (const [k, bl] of [['docx', DOCSREL.docx(ox)], ['odt', DOCSREL.odt(ox)]]) { const a2 = await analisa(bl, []); ex[k] = { mal: a2.mal_formado, cru: /<b>x<\/b>|<i>b<\/i>/.test(Object.values(a2.xmls).join('')) }; }
         V.docs.escape = ex;
       }
+
+      // ---- "Entenda a PNADC": figuras, conceitos, fontes oficiais com link e nada de texto estranho
+      await ir('#/entenda'); await espera(400);
+      { const c = document.getElementById('conteudo'), tx = c.innerText;
+        V.entenda = { cartoes: c.querySelectorAll('.mo-cartao').length, figuras: c.querySelectorAll('.ent-fig, .ent-rot, .ent-tempo, .ent-fluxo').length,
+          conceitos: ['força de trabalho', 'desalentadas', 'Desocupadas', 'Subocupadas por insuficiência de horas', 'Força de trabalho potencial', 'rotação 1-2(5)', 'Taxa composta de subutilização', 'Fontes e referências'].filter(x => tx.indexOf(x) >= 0).length,
+          links: Array.from(c.querySelectorAll('.ent-fontes a')).map(a => a.getAttribute('href')), refs: c.querySelectorAll('.ent-ref').length,
+          exemplo: /Com os números mais recentes do Brasil/.test(tx), sem_sorteio: !/sorte/i.test(tx), menu: Array.from(document.querySelectorAll('#nav a[data-pagina]')).map(a => a.textContent.trim() + (a.classList.contains('ativo') ? '*' : '')) }; }
+
+      // ---- Comparar: várias variáveis no mesmo gráfico (um eixo, dois eixos ou índice base 100, conforme as unidades)
+      {
+        const multi = async v => {
+          await ir('#/publicacoes?sec=comparar&ter=br&v=' + v); await espera(500);
+          const c = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(x => x.querySelector('.mo-sup .chip'));
+          const cv = c && c.querySelector('canvas'), ch = cv && Chart.getChart(cv);
+          if (!ch) return { sem_grafico: true };
+          const dados0 = ch.data.datasets.map(d => d.data.find(x => x !== null && x !== undefined));
+          return { n: ch.data.datasets.length, eixos: Object.keys(ch.scales).filter(k => k !== 'x').sort().join(','), y1: ch.data.datasets.map(d => d.yAxisID || 'y').join(','),
+            modo: (c.querySelector('.mo-seg button.on') || { textContent: '' }).textContent, primeiros: dados0.map(x => Math.round(x * 10) / 10), ativos: c.querySelectorAll('.mo-sup .chip.ativo').length,
+            msg: /dois eixos não bastam/.test(c.innerText) };
+        };
+        V.multi = { taxas: await multi('desocupacao,informalidade'), duas: await multi('desocupacao,informalidade,rendimento'), tres: await multi('desocupacao,rendimento,ocupados') };
+        // clicar numa variável muda o endereço (e o gráfico); a seleção fica no link
+        const c2 = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(x => x.querySelector('.mo-sup .chip'));
+        const antes = location.hash; const alvo = Array.from(c2.querySelectorAll('.mo-sup .chip')).find(x => !x.classList.contains('ativo'));
+        if (alvo) { alvo.click(); await espera(500); }
+        V.multi.clique = { mudou: location.hash !== antes, tem: /v=[^&]*,/.test(location.hash) };
+      }
       // ---- NENHUM rótulo sobre outro nem fora da imagem: todos os mapas e gráficos de linha dos slides
       await ir('#/publicacoes?sec=uf'); await espera(300);
       const D = PUBLICACOES.dados(), sl = APRESENTACAO.slidesDe(D), sobrep = [];
@@ -451,7 +479,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(r.get('n_canvas', 0) >= 1, (rotulo + ': há gráfico (canvas) na página (%s)') % r.get('n_canvas'))
     ctx.confere(r.get('n_erros_tela') == 0, rotulo + ': nenhum aviso de erro na tela de Resultados')
     ctx.confere('Última conferência com o IBGE' in (r.get('faixa') or ''), (rotulo + ': faixa de estado diz quando conferiu (%r)') % (r.get('faixa'),))
-    ctx.confere(r.get('menu') == ['Resultados*', 'Comparar períodos', 'Gerar release', 'Sobre'], (rotulo + ': menu e item ativo (%r)') % (r.get('menu'),))
+    ctx.confere(r.get('menu') == ['Resultados*', 'Comparar períodos', 'Gerar release', 'Entenda a PNADC', 'Sobre'], (rotulo + ': menu e item ativo (%r)') % (r.get('menu'),))
     s = r.get('seccoes') or {}
     ctx.confere(s.get('brasil', 0) > 500 and s.get('regioes', 0) > 500 and s.get('regioes_norte') and s.get('informalidade'),
                 (rotulo + ': seções Brasil, Regiões e indicador escolhido desenham (%r)') % (s,))
@@ -526,6 +554,21 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(all(not (dc.get('escape') or {}).get(k, {}).get('mal') and not (dc.get('escape') or {}).get(k, {}).get('cru') for k in ('docx', 'odt')) and len(dc.get('escape') or {}) == 2,
                 (rotulo + ': texto com < > & vira texto, não marcação (%r)') % (dc.get('escape'),))
     validar_documentos(ctx, r.get('arquivos_docs') or {}, rotulo)
+
+    en = v2.get('entenda') or {}
+    ctx.confere(en.get('cartoes', 0) >= 9 and en.get('figuras', 0) >= 4 and en.get('conceitos') == 8 and en.get('refs', 0) >= 30 and en.get('exemplo') and en.get('sem_sorteio'),
+                (rotulo + ': página "Entenda a PNADC" com cartões, figuras, conceitos e referências (%r)') % ({k: v for k, v in en.items() if k not in ('links', 'menu')},))
+    ctx.confere(len(en.get('links') or []) >= 9 and all(l.startswith('https://') or l.startswith('http://www.ilo.org/') for l in en['links']) and all('ibge.gov.br' in l or 'ilo.org' in l for l in en['links']),
+                (rotulo + ': fontes oficiais com link (IBGE e OIT) (%r)') % (en.get('links'),))
+    ctx.confere(en.get('menu') == ['Resultados', 'Comparar períodos', 'Gerar release', 'Entenda a PNADC*', 'Sobre'], (rotulo + ': "Entenda a PNADC" fica acima de "Sobre" no menu (%r)') % (en.get('menu'),))
+
+    mu = v2.get('multi') or {}
+    tx, du, tr = mu.get('taxas') or {}, mu.get('duas') or {}, mu.get('tres') or {}
+    ctx.confere(tx.get('n') == 2 and tx.get('eixos') == 'y' and tx.get('y1') == 'y,y', (rotulo + ': duas taxas no mesmo gráfico usam um eixo só (%r)') % (tx,))
+    ctx.confere(du.get('n') == 3 and du.get('eixos') == 'y,y1' and du.get('y1') == 'y,y,y1', (rotulo + ': taxas + rendimento usam dois eixos, um por unidade (%r)') % (du,))
+    ctx.confere(tr.get('n') == 3 and 'Índice' in (tr.get('modo') or '') and all(abs((x or 0) - 100) < 0.2 for x in tr.get('primeiros') or [0]) and len(tr.get('primeiros') or []) == 3,
+                (rotulo + ': três unidades abrem em Índice (base 100) e todas as linhas começam em 100 (%r)') % (tr,))
+    ctx.confere((mu.get('clique') or {}).get('mudou') and (mu.get('clique') or {}).get('tem'), (rotulo + ': clicar numa variável muda a seleção no endereço (%r)') % (mu.get('clique'),))
     ctx.confere(not r.get('suspeitos'), (rotulo + ': nenhuma tela mostra null/undefined/NaN/[object] (%s)') % (r.get('suspeitos') or [])[:4])
     ctx.confere(r.get('contato') and r.get('contato_rodape'), rotulo + ': e-mail de contato em Sobre e no rodapé do menu')
     t = r.get('apos_trocar_uf') or {}
