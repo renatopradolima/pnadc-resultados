@@ -662,7 +662,7 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
 
   /* Cores dos DADOS que não são situação publicada: foco em azul forte, o resto em azuis legíveis (nunca cinza claro).
      Verde e vermelho ficam reservados à situação publicada pelo IBGE (significativa); "estavel" é o neutro azul-ardósia. */
-  const COR = { foco: '#1a5fb4', regiao: '#5b9bd5', demais: '#8fb7e6', estavel: '#8199ad', brasil: '#37474f' };
+  const COR = { foco: '#1a5fb4', regiao: '#5b9bd5', demais: '#8fb7e6', estavel: '#8199ad', brasil: '#37474f', capital: '#00897b', rm: '#7e57c2' };
 
   injetarCss();
   ligarDicas();

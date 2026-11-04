@@ -571,7 +571,7 @@ const PUBLICACOES = (() => {
     const defs = [{ rotulo: nomeUf, v: sUf.v, va: sUf.va, cor: U.COR.estrutura }];
     if (sR) defs.push({ rotulo: nomeReg, v: alinharA(sR, sUf.per, 'v'), va: alinharA(sR, sUf.per, 'va'), cor: '#ffa726' });
     if (sB) defs.push({ rotulo: 'Brasil', v: alinharA(sB, sUf.per, 'v'), va: alinharA(sB, sUf.per, 'va'), cor: '#37474f', tracejado: true });
-    for (const x of extras) { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: rotLocal(x.nivel, x.loc), v: alinharA(s, sUf.per, 'v'), va: alinharA(s, sUf.per, 'va'), cor: '#26a69a', tracejado: true }); }
+    for (const x of extras) { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: rotLocal(x.nivel, x.loc), v: alinharA(s, sUf.per, 'v'), va: alinharA(s, sUf.per, 'va'), cor: x.nivel === 'N6' ? MOLDURA.COR.capital : MOLDURA.COR.rm, tracejado: true }); }
     cont.append(cartaoSerie({ meia: true, titulo: `${ind.rotulo}: ${nomeUf} × ${nomeReg} × Brasil`, ind, fam, nome: `pnadc_${D.uf.sigla || uf}_${ind.id}_serie`, ajuda: ind.definicao,
       labels: sUf.per.map(p => rotPer(p, fam, true)), defs, rodape: [avisoTabela(ind, fam), fonte(ind, fam)] }));
     blocoRanking(cont, ind, fam, per, ufs, pb, nomeUf, nomeReg);
@@ -651,11 +651,11 @@ const PUBLICACOES = (() => {
       subtitulo: `${ind.rotulo}, em ${UNID(ind)}`, fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam)],
       desenhar: (c, ctx) => {
         const cv = G.canvasEm(c, ctx.cheia ? 'mo-grafico-cheio' : 'grafico');
-        MOLDURA.estilizar(G.barras(cv, { labels: linhas.map(l => (l.tipo === 'Capital' ? l.nome : l.nome + ' (RM)')), valores: linhas.map(l => l.v), horizontal: true,
-          formato: v => fmtV(ind, v), cores: linhas.map(l => (l.tipo === 'Capital' ? U.COR.estrutura : MOLDURA.COR.regiao)) }));
+        MOLDURA.estilizar(G.barras(cv, { labels: linhas.map(l => l.nome), valores: linhas.map(l => l.v), horizontal: true,
+          formato: v => fmtV(ind, v), cores: linhas.map(l => (l.tipo === 'Capital' ? MOLDURA.COR.capital : MOLDURA.COR.rm)) }));
       } }));
     cont.append(cartaoTabela({ titulo: 'Capitais e regiões metropolitanas — tabela', subtitulo: `${ind.rotulo}, ${rotPer(per, fam)}`, nome: `pnadc_capitais_${ind.id}_${per}_tabela`, linhas,
-      fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam)], ajuda: 'Azul forte: capital; azul claro: região metropolitana. ⚠ = precisão razoável ou pior (CV acima de 15%).',
+      fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam)], ajuda: 'Verde-azulado: capital; roxo: região metropolitana. ⚠ = precisão razoável ou pior (CV acima de 15%).',
       colunas: [
         { chave: 'nome', rotulo: 'Território' }, { chave: 'tipo', rotulo: 'Tipo' },
         { chave: 'v', rotulo: rotPer(per, fam), num: true, fmt: v => fmtV(ind, v) },
@@ -691,8 +691,7 @@ const PUBLICACOES = (() => {
     const per = base.per[ultimoIdx(base)];
     // ---- série
     const defs = [];
-    const cores = ['#00897b', '#7e57c2', '#26a69a'];
-    locs.forEach((x, k) => { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: rotLocal(x.nivel, x.loc), v: alinharA(s, base.per, 'v'), va: alinharA(s, base.per, 'va'), cor: k === 0 ? U.COR.estrutura : cores[k % 3] }); });
+    locs.forEach((x, k) => { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: rotLocal(x.nivel, x.loc), v: alinharA(s, base.per, 'v'), va: alinharA(s, base.per, 'va'), cor: x.nivel === 'N6' ? MOLDURA.COR.capital : MOLDURA.COR.rm }); });
     if (sUf) defs.push({ rotulo: nomeUf, v: alinharA(sUf, base.per, 'v'), va: alinharA(sUf, base.per, 'va'), cor: '#ffa726' });
     if (sBr) defs.push({ rotulo: 'Brasil', v: alinharA(sBr, base.per, 'v'), va: alinharA(sBr, base.per, 'va'), cor: '#37474f', tracejado: true });
     cont.append(cartaoSerie({ titulo: `${ind.rotulo}: capital e região metropolitana de ${nomeUf}`, ind, fam, nome: `pnadc_${D.uf.sigla || uf}_capital_${ind.id}`, ajuda: ind.definicao,
