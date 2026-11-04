@@ -308,3 +308,11 @@ Pendente: README final/LICENSE para o GitHub (ver `docs/PUBLICAR_NO_GITHUB.md`) 
 - **Sem modelo de linguagem de propósito**: o produto não tem servidor nem chave e só fala com a API de agregados do IBGE;
   texto gerado por gabarito é auditável, repetível e sem risco de número inventado. Teste: `V.alt` em `testes/casca.py`
   (toda combinação de alternativas × 4 recortes passa pela conferência, muda o texto e a padrão é a de sempre).
+
+## 13. Word e OpenDocument (04/11/2026)
+- Passo 10 do gerador de releases: **Baixar Word (.docx)** e **Baixar OpenDocument (.odt)** (`nucleo/docs.js`, global `DOCSREL`). Sem biblioteca e
+  sem rede: ZIP gravado sem compressão (CRC-32 próprio) com o XML do Word/ODF. Mesmo conteúdo do PDF direto (`blocosPdf`): títulos, texto
+  justificado, tópicos, citação, tabelas de verdade (cabeçalho verde repetido) e as imagens no fim, com texto alternativo; rodapé com "Página n de N".
+- Texto de dado vai como texto XML escapado (nunca marcação). Teste (`V.docs` em `testes/casca.py`): ZIP íntegro, XML bem formado, título, tabelas e
+  imagens; por fora, o Python reabre os dois (zipfile + minidom), o `python-docx` abre o .docx e, se houver LibreOffice, converte ambos em PDF
+  (sem LibreOffice nesta máquina: o .odt só tem a conferência de estrutura).

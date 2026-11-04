@@ -261,6 +261,31 @@ JS_ROTEIRO = r"""
       }
       const lg = RMo.legibilidade('Esta frase é curta. Outra frase também é curta e fácil de ler. A terceira fecha o texto.', { midia: 'x' });
       V.alt.leitura = { flesch: lg.flesch, nivel: lg.nivel, frases: lg.frases };
+
+      // ---- Word (.docx) e OpenDocument (.odt): ZIP íntegro (CRC), XML bem formado, conteúdo e imagens; os arquivos vão ao Python para validação externa
+      {
+        const E1 = RMo.normalizar(Object.assign(RMo.padrao('2026-12-31'), { territorio: 'uf', midia: 'site', tamanho: 'completo', visuais: { linha: true, barras: true, halteres: true, tabela: true, grade: false } }));
+        const F1 = RMo.montarFatos(Dd, E1), d1 = RMo.redigir(F1);
+        const o1 = await RELEASES._montarDoc(F1, d1, d1.texto);
+        const b64 = async bl => { const u = new Uint8Array(await bl.arrayBuffer()); let s2 = ''; for (let i = 0; i < u.length; i += 8192) s2 += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s2); };
+        const analisa = async (bl, partes) => {
+          const u = new Uint8Array(await bl.arrayBuffer()), es = DOCSREL.ler(u), nomes = es.map(x => x.nome), xmls = {};
+          let malFormado = [];
+          for (const e of es) if (/\.(xml|rels)$/.test(e.nome)) { const doc2 = new DOMParser().parseFromString(new TextDecoder().decode(e.dados), 'application/xml'); if (doc2.getElementsByTagName('parsererror').length) malFormado.push(e.nome); xmls[e.nome] = new TextDecoder().decode(e.dados); }
+          return { n: es.length, primeiro: nomes[0], crc_ok: es.every(x => x.crcOk), mal_formado: malFormado, tem: partes.every(p => nomes.indexOf(p) >= 0), xmls };
+        };
+        const wd = await analisa(DOCSREL.docx(o1), ['[Content_Types].xml', 'word/document.xml', 'word/styles.xml', 'word/numbering.xml', 'word/footer1.xml']);
+        const od = await analisa(DOCSREL.odt(o1), ['mimetype', 'content.xml', 'styles.xml', 'meta.xml', 'META-INF/manifest.xml']);
+        const cnt = (str, re) => (str.match(re) || []).length;
+        V.docs = { titulo: o1.titulo, n_imagens: o1.imagens.length, n_tabelas: o1.blocos.filter(b => b.t === 'tabela').length, n_titulos: o1.blocos.filter(b => /^h\d$/.test(b.t)).length,
+          docx: { n: wd.n, crc_ok: wd.crc_ok, mal_formado: wd.mal_formado, tem: wd.tem, tbl: cnt(wd.xmls['word/document.xml'], /<w:tbl>/g), img: cnt(wd.xmls['word/document.xml'], /<wp:inline/g), h1: cnt(wd.xmls['word/document.xml'], /w:val="Ttulo1"/g), tem_titulo: wd.xmls['word/document.xml'].indexOf(DOCSREL._esc(o1.titulo)) >= 0 },
+          odt: { n: od.n, primeiro: od.primeiro, crc_ok: od.crc_ok, mal_formado: od.mal_formado, tem: od.tem, tbl: cnt(od.xmls['content.xml'], /<table:table /g), img: cnt(od.xmls['content.xml'], /<draw:frame /g), h1: cnt(od.xmls['content.xml'], /text:outline-level="1"/g), tem_titulo: od.xmls['content.xml'].indexOf(DOCSREL._esc(o1.titulo)) >= 0 } };
+        R.arquivos_docs = { docx: await b64(DOCSREL.docx(o1)), odt: await b64(DOCSREL.odt(o1)) };
+        // texto perigoso vira TEXTO: "<b>" não pode virar marcação
+        const ox = { titulo: 'T <b>x</b> & "y"', blocos: [{ t: 'h1', texto: 'A <i>b</i> & c' }, { t: 'p', texto: 'linha 1\nlinha 2 ]]> </w:t>' }, { t: 'tabela', cab: ['a', 'b'], linhas: [['<x>', '&']] }], imagens: [] };
+        const ex = {}; for (const [k, bl] of [['docx', DOCSREL.docx(ox)], ['odt', DOCSREL.odt(ox)]]) { const a2 = await analisa(bl, []); ex[k] = { mal: a2.mal_formado, cru: /<b>x<\/b>|<i>b<\/i>/.test(Object.values(a2.xmls).join('')) }; }
+        V.docs.escape = ex;
+      }
       // ---- NENHUM rótulo sobre outro nem fora da imagem: todos os mapas e gráficos de linha dos slides
       await ir('#/publicacoes?sec=uf'); await espera(300);
       const D = PUBLICACOES.dados(), sl = APRESENTACAO.slidesDe(D), sobrep = [];
@@ -329,6 +354,60 @@ JS_ROTEIRO = r"""
 
 GANCHO = ('try {' + JS_REDE + '} catch (e) { document.title = "REDE: " + e.stack; }\n'
           'try {' + JS_ROTEIRO + '} catch (e) { document.title = "ROTEIRO: " + e.stack; }')
+
+
+def validar_documentos(ctx, arq, rotulo):
+    """Validação por fora do navegador: ZIP do Python, XML do Python, python-docx (se houver) e LibreOffice (se houver) convertendo para PDF."""
+    import base64, glob, shutil, subprocess, tempfile, zipfile
+    from xml.dom import minidom
+    pasta = tempfile.mkdtemp(prefix='pnadc_docs_')
+    try:
+        caminhos = {}
+        for k, b64 in arq.items():
+            caminhos[k] = os.path.join(pasta, 'release.' + k)
+            with open(caminhos[k], 'wb') as f:
+                f.write(base64.b64decode(b64))
+        ctx.confere(set(caminhos) == {'docx', 'odt'}, rotulo + ': arquivos .docx e .odt gerados')
+        for k, c in caminhos.items():
+            z = zipfile.ZipFile(c)
+            ctx.confere(z.testzip() is None, rotulo + ': %s passa no teste do ZIP do Python' % k)
+            ruins = []
+            for n in z.namelist():
+                if n.endswith('.xml') or n.endswith('.rels'):
+                    try:
+                        minidom.parseString(z.read(n))
+                    except Exception as e:
+                        ruins.append('%s: %s' % (n, e))
+            ctx.confere(not ruins, rotulo + ': %s com XML bem formado para o Python (%s)' % (k, ruins[:2]))
+        try:
+            import docx as pydocx
+        except ImportError:
+            print(u'AVISO  SKIP python-docx não instalado: .docx não aberto por biblioteca externa')
+        else:
+            d = pydocx.Document(caminhos['docx'])
+            ctx.confere(len(d.paragraphs) > 10 and len(d.tables) >= 1 and len(d.inline_shapes) >= 2 and any(p.style.name.startswith('heading') or p.style.name.startswith('Heading') for p in d.paragraphs),
+                        rotulo + ': python-docx abre o .docx (parágrafos %d, tabelas %d, imagens %d)' % (len(d.paragraphs), len(d.tables), len(d.inline_shapes)))
+        soffice = shutil.which('soffice') or next(iter(glob.glob(r'C:\Program Files\LibreOffice\program\soffice.exe')), None)
+        if not soffice:
+            print(u'AVISO  SKIP LibreOffice não encontrado: .docx/.odt não convertidos em PDF')
+        else:
+            for k, c in caminhos.items():
+                saida = os.path.join(pasta, 'pdf_' + k)
+                try:
+                    subprocess.run([soffice, '--headless', '--norestore', '-env:UserInstallation=' + pathlib_uri(os.path.join(pasta, 'perfil_' + k)), '--convert-to', 'pdf', '--outdir', saida, c], capture_output=True, timeout=240)
+                except Exception as e:
+                    print(u'AVISO  LibreOffice falhou em %s: %s' % (k, e))
+                pdf = os.path.join(saida, 'release.pdf')
+                ok = os.path.exists(pdf) and os.path.getsize(pdf) > 5000
+                paginas = open(pdf, 'rb').read().count(b'/Type /Page') - open(pdf, 'rb').read().count(b'/Type /Pages') if ok else 0
+                ctx.confere(ok and paginas >= 2, rotulo + ': LibreOffice abre o .%s e converte em PDF (%s páginas)' % (k, paginas))
+    finally:
+        shutil.rmtree(pasta, ignore_errors=True)
+
+
+def pathlib_uri(p):
+    import pathlib
+    return pathlib.Path(p).as_uri()
 
 
 def teste_entregue(ctx):
@@ -437,6 +516,16 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(len(al) == 4 and any(not r.get('sem_lide') for r in al.values()), rotulo + ': alternativas testadas nos quatro recortes (%r)' % (list(al),))
     lt = (v2.get('alt') or {}).get('leitura') or {}
     ctx.confere(lt.get('frases') == 3 and (lt.get('flesch') or 0) > 60, (rotulo + ': índice de leitura de um texto simples (%r)') % (lt,))
+
+    dc = v2.get('docs') or {}
+    for k in ('docx', 'odt'):
+        x = dc.get(k) or {}
+        ctx.confere(x.get('crc_ok') and not x.get('mal_formado') and x.get('tem') and x.get('n', 0) >= 5 and x.get('tbl', 0) >= dc.get('n_tabelas', 99) >= 1 and x.get('img') == dc.get('n_imagens') and dc.get('n_imagens', 0) >= 2
+                    and x.get('h1', 0) >= 1 and x.get('tem_titulo'), (rotulo + ': %s íntegro (CRC), XML bem formado, título, tabelas e imagens (%r)') % (k, x))
+    ctx.confere((dc.get('odt') or {}).get('primeiro') == 'mimetype', rotulo + ': .odt começa por "mimetype"')
+    ctx.confere(all(not (dc.get('escape') or {}).get(k, {}).get('mal') and not (dc.get('escape') or {}).get(k, {}).get('cru') for k in ('docx', 'odt')) and len(dc.get('escape') or {}) == 2,
+                (rotulo + ': texto com < > & vira texto, não marcação (%r)') % (dc.get('escape'),))
+    validar_documentos(ctx, r.get('arquivos_docs') or {}, rotulo)
     ctx.confere(not r.get('suspeitos'), (rotulo + ': nenhuma tela mostra null/undefined/NaN/[object] (%s)') % (r.get('suspeitos') or [])[:4])
     ctx.confere(r.get('contato') and r.get('contato_rodape'), rotulo + ': e-mail de contato em Sobre e no rodapé do menu')
     t = r.get('apos_trocar_uf') or {}

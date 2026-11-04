@@ -7,7 +7,7 @@ arquivo só (`PNADC_Resultados.html`): abra com duplo clique no Edge ou no Chrom
   e da publicação em análise (por padrão a última).
 - Gráficos e tabelas em **tela cheia**, exportáveis em **JPG**, com **slider de período** e alternância entre quantidade e
   percentual onde faz sentido. **Comparar períodos**, **Capital e RM**, **mapa das UFs**.
-- **Apresentar** (slides em tela cheia) e **PDF** do relatório; **gerador de releases** (texto, imagens, HTML e PDF).
+- **Apresentar** (slides em tela cheia) e **PDF** do relatório; **gerador de releases** (texto, imagens, HTML, PDF, Word e OpenDocument).
 - Aviso de publicação nova do IBGE. Os dados vêm direto da API pública de agregados do IBGE (SIDRA) e ficam guardados no
   seu navegador; nada sai do seu computador além dos pedidos ao IBGE.
 

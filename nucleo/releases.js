@@ -775,6 +775,16 @@ ${figs}
     baixarBlob(PDFREL.criar({ titulo: doc.titulo || 'Release PNAD Contínua', assunto: 'Release da PNAD Contínua (IBGE)', paginas,
       rodape: `Fonte: IBGE, PNAD Contínua (SIDRA). Gerado em ${new Date().toLocaleDateString('pt-BR')} por ${AMBIENTE.produto || 'PNADC Resultados'}.` }), base + '.pdf');
   }
+  /* Word (.docx) e OpenDocument (.odt): o mesmo conteúdo do PDF direto (títulos, texto, tópicos, tabelas) e as imagens no fim */
+  function montarDocEditavel(F, doc, txt) {
+    const lista = (doc.visuais || []).map(v => { try { return { v, cv: desenhar(v) }; } catch (e) { console.error(e); return null; } }).filter(Boolean);
+    const lerImg = it => new Promise(res => it.cv.toBlob(bl => bl.arrayBuffer().then(ab => res({ bytes: new Uint8Array(ab), largura: it.cv.width, altura: it.cv.height, titulo: it.v.titulo, alt: it.v.alt })), 'image/png'));
+    return Promise.all(lista.map(lerImg)).then(imagens => ({ titulo: doc.titulo || 'Release PNAD Contínua', assunto: 'Release da PNAD Contínua (IBGE)', blocos: blocosPdf(txt, doc), imagens,
+      rodape: `Fonte: IBGE, PNAD Contínua (SIDRA). Gerado em ${new Date().toLocaleDateString('pt-BR')} por ${AMBIENTE.produto || 'PNADC Resultados'}` }));
+  }
+  function baixarDocEditavel(F, doc, txt, base, formato) {
+    return montarDocEditavel(F, doc, txt).then(o => baixarBlob(formato === 'odt' ? DOCSREL.odt(o) : DOCSREL.docx(o), base + (formato === 'odt' ? '.odt' : '.docx')));
+  }
   function botoesExportar(F, doc, libera) {
     const txt = textoAtual(doc), plano = textoParaPlano(txt, doc), base = nomeBase(F);
     const b = (rot, fn, titulo) => U.el('button', { class: 'btn pequeno', disabled: !libera, title: libera ? (titulo || '') : 'Resolva os itens marcados com ✖ e marque as conferências manuais', onclick: () => { try { fn(); } catch (e) { console.error(e); AMBIENTE.toast('Não consegui exportar: ' + e.message, 'erro', 6000); } } }, rot);
@@ -783,6 +793,8 @@ ${figs}
       b('Baixar .txt', () => baixarTexto(plano, base + '.txt')),
       b('Baixar .md', () => baixarTexto(doc.formato === 'md' ? txt : plano, base + '.md', 'text/markdown')),
       b('Baixar HTML', () => baixarTexto(htmlDocumento(F, doc, txt, imagensDe(doc)), base + '.html', 'text/html')),
+      typeof DOCSREL !== 'undefined' ? b('Baixar Word (.docx)', () => baixarDocEditavel(F, doc, txt, base, 'docx'), 'Documento do Word editável: títulos, texto, tabelas e as imagens no fim') : null,
+      typeof DOCSREL !== 'undefined' ? b('Baixar OpenDocument (.odt)', () => baixarDocEditavel(F, doc, txt, base, 'odt'), 'Documento do LibreOffice / OpenOffice editável') : null,
       typeof PDFREL !== 'undefined' ? b('Baixar PDF', () => baixarPdfRelease(F, doc, txt, base), 'PDF pronto, sem a janela de impressão: texto justificado e selecionável, tabelas e as imagens no fim') : null,
       b('CSV dos números', () => baixarTexto(csvNumeros(F), base + '_numeros.csv', 'text/csv')),
     ].filter(Boolean);
@@ -861,7 +873,7 @@ ${figs}
     };
     try { redesenharTudo(); } catch (e) { console.error(e); raiz.append(U.el('div', { class: 'aviso erro' }, 'Não consegui montar o gerador de releases: ' + e.message)); }
   }
-  return { render, pode, _mdHtml: mdHtml, _desenhar: { desenhar, desenharTela, layoutMapa, espalhar },
+  return { render, pode, _mdHtml: mdHtml, _montarDoc: montarDocEditavel, _desenhar: { desenhar, desenharTela, layoutMapa, espalhar },
     // bancada (teste_releases.py): o estado e a geração com cache, sem tela
     _teste: { estado: D => estado(D), gerar: D => gerar(D), get ST() { return ST; } } };
 })();
