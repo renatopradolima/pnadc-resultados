@@ -140,6 +140,9 @@ const PUBLICACOES = (() => {
     return { per: s.per[i], v: s.v[i], cv: s.cv[i], vc: s.vc[i], sc: s.sc[i], va: s.va[i], sa: s.sa[i] };
   }
   const nomeLocal = (nivel, loc) => D.locais[nivel + '|' + loc] || (nivel === 'N1' ? 'Brasil' : loc);
+  /* O IBGE dá o MESMO nome à capital (N6) e à região metropolitana (N7): "Belém - PA". Em gráfico, legenda, tabela e seletor o nível fica explícito. */
+  const limpaNome = s2 => String(s2 || '').replace(/\s*[-(].*$/, '').trim();
+  const rotLocal = (nivel, loc) => { const n = nomeLocal(nivel, loc); return nivel === 'N6' ? `${limpaNome(n)} (capital)` : nivel === 'N7' ? `Região metropolitana de ${limpaNome(n)}` : n; };
   const consulta = tab => (D.consultas || {})[tab] || null;
 
   // ------------------------------------------------------------------ formatação
@@ -568,7 +571,7 @@ const PUBLICACOES = (() => {
     const defs = [{ rotulo: nomeUf, v: sUf.v, va: sUf.va, cor: U.COR.estrutura }];
     if (sR) defs.push({ rotulo: nomeReg, v: alinharA(sR, sUf.per, 'v'), va: alinharA(sR, sUf.per, 'va'), cor: '#ffa726' });
     if (sB) defs.push({ rotulo: 'Brasil', v: alinharA(sB, sUf.per, 'v'), va: alinharA(sB, sUf.per, 'va'), cor: '#37474f', tracejado: true });
-    for (const x of extras) { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: nomeLocal(x.nivel, x.loc), v: alinharA(s, sUf.per, 'v'), va: alinharA(s, sUf.per, 'va'), cor: '#26a69a', tracejado: true }); }
+    for (const x of extras) { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: rotLocal(x.nivel, x.loc), v: alinharA(s, sUf.per, 'v'), va: alinharA(s, sUf.per, 'va'), cor: '#26a69a', tracejado: true }); }
     cont.append(cartaoSerie({ meia: true, titulo: `${ind.rotulo}: ${nomeUf} × ${nomeReg} × Brasil`, ind, fam, nome: `pnadc_${D.uf.sigla || uf}_${ind.id}_serie`, ajuda: ind.definicao,
       labels: sUf.per.map(p => rotPer(p, fam, true)), defs, rodape: [avisoTabela(ind, fam), fonte(ind, fam)] }));
     blocoRanking(cont, ind, fam, per, ufs, pb, nomeUf, nomeReg);
@@ -589,7 +592,7 @@ const PUBLICACOES = (() => {
     pars.push(avisoCv(nomeUf, pu.cv));
     for (const x of extras) {
       const s = serie(ind, fam, x.nivel, x.loc), p = ponto(s, idxDe(s, per));
-      if (p && !vazio(p.v)) pars.push(`${x.nivel === 'N6' ? 'Na capital' : 'Na região metropolitana'}, ${nomeLocal(x.nivel, x.loc)}: ${fmtV(ind, p.v)} (${cvTexto(p.cv)}); em um ano, ${fraseVar(ind, p.va, p.sa, rotPer(perAno(per), fam))}.`);
+      if (p && !vazio(p.v)) pars.push(`${x.nivel === 'N6' ? 'Na capital' : 'Na região metropolitana'}, ${limpaNome(nomeLocal(x.nivel, x.loc))}: ${fmtV(ind, p.v)} (${cvTexto(p.cv)}); em um ano, ${fraseVar(ind, p.va, p.sa, rotPer(perAno(per), fam))}.`);
     }
     cont.append(leitura(`${nomeUf} — ${ind.rotulo}, ${rotPer(per, fam)}`, pars, [
       `A UF só tem divulgação TRIMESTRAL: o trimestre móvel mais recente (aba Brasil) não existe para ${nomeUf}.`,
@@ -641,7 +644,7 @@ const PUBLICACOES = (() => {
     const linhas = [];
     locs.forEach(x => {
       const s = serie(ind, fam, x.nivel, x.loc), p = ponto(s, idxDe(s, per));
-      if (p && !vazio(p.v)) linhas.push({ nome: nomeLocal(x.nivel, x.loc), tipo: x.nivel === 'N6' ? 'Capital' : 'Região metropolitana', v: p.v, cv: p.cv, vc: p.vc, sc: p.sc, va: p.va, sa: p.sa });
+      if (p && !vazio(p.v)) linhas.push({ nome: rotLocal(x.nivel, x.loc), tipo: x.nivel === 'N6' ? 'Capital' : 'Região metropolitana', v: p.v, cv: p.cv, vc: p.vc, sc: p.sc, va: p.va, sa: p.sa });
     });
     linhas.sort((a, b) => b.v - a.v);
     cont.append(MOLDURA.cartao({ titulo: `${ind.rotulo} — capitais e regiões metropolitanas, ${rotPer(per, fam)}`, icone: 'capital', nome: `pnadc_capitais_${ind.id}_${per}`,
@@ -678,7 +681,7 @@ const PUBLICACOES = (() => {
       resumo.append(kpiCard(i, fam, x.nivel, x.loc, p => {
         const su = serie(i, fam, 'N3', uf), pu = ponto(su, idxDe(su, p.per));
         return `${rotPer(p.per, fam)} · ${nomeUf} ${pu ? fmtV(i, pu.v) : '–'}`;
-      }, nomeLocal(x.nivel, x.loc)));
+      }, rotLocal(x.nivel, x.loc)));
     }
     cont.append(resumo);
     cont.append(barraChips(ind, 'capitais', i => comCap.some(c => c.id === i.id)));
@@ -689,7 +692,7 @@ const PUBLICACOES = (() => {
     // ---- série
     const defs = [];
     const cores = ['#00897b', '#7e57c2', '#26a69a'];
-    locs.forEach((x, k) => { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: nomeLocal(x.nivel, x.loc), v: alinharA(s, base.per, 'v'), va: alinharA(s, base.per, 'va'), cor: k === 0 ? U.COR.estrutura : cores[k % 3] }); });
+    locs.forEach((x, k) => { const s = serie(ind, fam, x.nivel, x.loc); if (s) defs.push({ rotulo: rotLocal(x.nivel, x.loc), v: alinharA(s, base.per, 'v'), va: alinharA(s, base.per, 'va'), cor: k === 0 ? U.COR.estrutura : cores[k % 3] }); });
     if (sUf) defs.push({ rotulo: nomeUf, v: alinharA(sUf, base.per, 'v'), va: alinharA(sUf, base.per, 'va'), cor: '#ffa726' });
     if (sBr) defs.push({ rotulo: 'Brasil', v: alinharA(sBr, base.per, 'v'), va: alinharA(sBr, base.per, 'va'), cor: '#37474f', tracejado: true });
     cont.append(cartaoSerie({ titulo: `${ind.rotulo}: capital e região metropolitana de ${nomeUf}`, ind, fam, nome: `pnadc_${D.uf.sigla || uf}_capital_${ind.id}`, ajuda: ind.definicao,
@@ -697,7 +700,7 @@ const PUBLICACOES = (() => {
     // ---- tabela
     const linhas = [];
     const add = (nome, s) => { const p = ponto(s, idxDe(s, per)); if (p && !vazio(p.v)) linhas.push({ nome, v: p.v, cv: p.cv, vc: p.vc, sc: p.sc, va: p.va, sa: p.sa }); };
-    locs.forEach(x => add(`${nomeLocal(x.nivel, x.loc)} (${x.nivel === 'N6' ? 'capital' : 'região metropolitana'})`, serie(ind, fam, x.nivel, x.loc)));
+    locs.forEach(x => add(rotLocal(x.nivel, x.loc), serie(ind, fam, x.nivel, x.loc)));
     add(nomeUf, sUf); add(nomeReg, sR); add('Brasil', sBr);
     cont.append(cartaoTabela({ titulo: `${ind.rotulo} — capital, UF, região e Brasil, ${rotPer(per, fam)}`, nome: `pnadc_${D.uf.sigla || uf}_capital_${ind.id}_${per}`, linhas, fonteImagem: fonteImg(ind, fam),
       rodape: [fonte(ind, fam)], colunas: [
@@ -714,9 +717,9 @@ const PUBLICACOES = (() => {
       const s = serie(ind, fam, x.nivel, x.loc), p = ponto(s, idxDe(s, per));
       if (!p || vazio(p.v)) return;
       const onde = x.nivel === 'N6' ? 'A capital' : 'A região metropolitana';
-      pars.push(`${onde}, ${nomeLocal(x.nivel, x.loc)}, tem ${comArtigo(ind).replace(/^(a|o) /, '')} de ${fmtV(ind, p.v)} (${cvTexto(p.cv)}) no ${rotPer(per, fam)}` +
+      pars.push(`${onde}, ${limpaNome(nomeLocal(x.nivel, x.loc))}, tem ${comArtigo(ind).replace(/^(a|o) /, '')} de ${fmtV(ind, p.v)} (${cvTexto(p.cv)}) no ${rotPer(per, fam)}` +
         (pU ? `, ${p.v > pU.v ? 'acima' : p.v < pU.v ? 'abaixo' : 'no mesmo nível'} de ${nomeUf} (${fmtV(ind, pU.v)}); contra a UF, ${compararAreas(p, pU)}` : '') + `. Em um ano, ${fraseVar(ind, p.va, p.sa, rotPer(perAno(per), fam))}.`);
-      pars.push(avisoCv(nomeLocal(x.nivel, x.loc), p.cv));
+      pars.push(avisoCv(rotLocal(x.nivel, x.loc), p.cv));
     });
     cont.append(leitura(`Capital e região metropolitana — ${ind.rotulo}, ${rotPer(per, fam)}`, pars, [
       'Capital e região metropolitana só têm divulgação trimestral e só em algumas tabelas (desocupação e rendimento); os demais indicadores ficam de fora por decisão do IBGE, não da página.',
@@ -750,7 +753,7 @@ const PUBLICACOES = (() => {
     ['1', '2', '3', '4', '5'].forEach(r => terr.push({ id: 'r' + r, nome: `Região ${nomeLocal('N2', r)}`, nivel: 'N2', loc: r }));
     if (uf) terr.push({ id: 'uf', nome: nomeUf, nivel: 'N3', loc: uf });
     const vistos = {};
-    D.indicadores.forEach(i => locaisCap(i, fam).forEach(x => { const k = x.nivel + '|' + x.loc; if (!vistos[k]) { vistos[k] = 1; terr.push({ id: (x.nivel === 'N6' ? 'cap' : 'rm') + x.loc, nome: `${nomeLocal(x.nivel, x.loc)} (${x.nivel === 'N6' ? 'capital' : 'região metropolitana'})`, nivel: x.nivel, loc: x.loc }); } }));
+    D.indicadores.forEach(i => locaisCap(i, fam).forEach(x => { const k = x.nivel + '|' + x.loc; if (!vistos[k]) { vistos[k] = 1; terr.push({ id: (x.nivel === 'N6' ? 'cap' : 'rm') + x.loc, nome: rotLocal(x.nivel, x.loc), nivel: x.nivel, loc: x.loc }); } }));
     const pedido = (query && query.get('ter')) || (uf ? 'uf' : 'br');
     const t = terr.find(x => x.id === pedido) || terr.find(x => x.id === (uf ? 'uf' : 'br'));
     const serieT = i => serie(i, fam, t.nivel, t.loc);
