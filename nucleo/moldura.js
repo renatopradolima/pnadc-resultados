@@ -181,7 +181,7 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
   box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 6px 16px rgba(0,0,0,.35); }
 /* ---- tela grande: duas colunas (os cartões "meia" ficam lado a lado; o resto ocupa a largura toda) ---- */
 @media (min-width: 1500px) {
-  .mo-pagina { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .mo-pagina { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 16px; align-items: start; }
   .mo-pagina > * { grid-column: 1 / -1; margin-top: 0 !important; }
   .mo-pagina > .mo-meia { grid-column: auto; }
   .mo-pagina .grade.g4, .mo-pagina .grade.g3 { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }

@@ -27,12 +27,19 @@ JS_ROTEIRO = r"""
       const b = e.getBoundingClientRect();
       if (b.width > 0 && b.right > W + 1 && !rolante(e)) fora.push(e.tagName + '.' + String(e.className).slice(0, 24) + ':' + Math.round(b.right) + ' w' + Math.round(b.width) + ' em ' + e.parentElement.tagName + '.' + String(e.parentElement.className).slice(0, 24) + ' "' + (e.innerText || '').slice(0, 40).replace(/\s+/g, ' ') + '"');
     });
+    const k = Array.from(document.getElementById('conteudo').children).filter(e => e.getBoundingClientRect().height > 0), sobre = [];
+    for (let i = 0; i < k.length; i++) for (let j = i + 1; j < k.length; j++) { const p = k[i].getBoundingClientRect(), q = k[j].getBoundingClientRect();
+      if (Math.min(p.right, q.right) - Math.max(p.left, q.left) > 2 && Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top) > 2) sobre.push(i + 'x' + j); }
+    if (sobre.length) fora.push('SOBREPOSTOS ' + sobre.join(','));
     R.paginas[h] = { W: W, sw: document.documentElement.scrollWidth, conteudo: Math.round(document.getElementById('conteudo').getBoundingClientRect().width),
                      cartoes: document.querySelectorAll('#conteudo .mo-cartao').length, fora: fora.slice(0, 6) };
   }
   (async function () {
     await espera(15000);
     for (const h of PAGINAS) { location.hash = h; await espera(900); medir(h); }
+    // sem UF em destaque (ranking das 27 UFs): os cartões também não podem se sobrepor
+    const su = document.getElementById('seletor-uf'); su.value = ''; su.dispatchEvent(new Event('change')); await espera(3500);
+    for (const h of PAGINAS.slice(0, 5)) { location.hash = h; await espera(1500); medir('(sem UF) ' + h); }
   })().catch(e => { R.FALHA = String(e && e.stack || e); }).then(() => {
     const pre = document.createElement('pre'); pre.id = '__res'; pre.textContent = '<<<' + JSON.stringify(R) + '>>>'; document.body.append(pre);
   });
@@ -62,4 +69,4 @@ def teste_responsivo(ctx):
             ctx.confere(m['sw'] <= m['W'] + 1 and not m['fora'],
                         'responsivo %s (%d px) %s: sem rolagem horizontal (rolagem %d, janela %d, fora: %s)' % (nome, r.get('largura', 0), h, m['sw'], m['W'], m['fora']))
             ctx.confere(m['conteudo'] <= m['W'], 'responsivo %s %s: o conteúdo cabe na janela (%d de %d)' % (nome, h, m['conteudo'], m['W']))
-        ctx.confere(len(r.get('paginas') or {}) == len(PAGINAS), 'responsivo %s: todas as páginas foram medidas' % nome)
+        ctx.confere(len(r.get('paginas') or {}) == len(PAGINAS) + 5, 'responsivo %s: todas as páginas foram medidas' % nome)
