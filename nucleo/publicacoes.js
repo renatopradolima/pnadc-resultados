@@ -496,6 +496,10 @@ const PUBLICACOES = (() => {
   /* ranking das UFs (gráfico com alternância de modo + tabela); `nomeUf` vazio = nenhuma UF em destaque */
   function blocoRanking(cont, ind, fam, per, ufs, pb, nomeUf, nomeReg) {
     if (!ufs.length) return;
+      // UF sem valor publicado neste período não some em silêncio: o gráfico e a tabela dizem quais faltam
+      const comValor = new Set(ufs.map(u => u.loc)), todas = Object.keys(D.locais || {}).filter(k => k.startsWith('N3|')).map(k => k.split('|')[1]);
+      const faltam = todas.filter(c => !comValor.has(c)).map(c => nomeLocal('N3', c)).sort();
+      const avisoFaltam = faltam.length ? U.el('div', { class: 'mini-info', style: { color: U.COR.atencaoForte } }, `Sem valor publicado neste período (${faltam.length} de ${todas.length}): ${faltam.join(', ')}.`) : null;
       const pbv = pb && !vazio(pb.v) ? pb.v : null;
       const modosR = pbv === null ? [] : ind.tipo === 'taxa'
         ? [{ valor: 'nivel', rotulo: 'Taxa (%)' }, { valor: 'dif', rotulo: 'Dif. ao Brasil (p.p.)', dica: 'Quantos pontos percentuais acima (+) ou abaixo (−) do Brasil' }]
@@ -505,7 +509,7 @@ const PUBLICACOES = (() => {
       cont.append(MOLDURA.cartao({ classe: nomeUf ? 'mo-meia' : '', titulo: `Ranking das UFs — ${ind.rotulo}, ${rotPer(per, fam)}`, icone: 'rank', nome: `pnadc_ranking_${ind.id}_${per}`, chave: 'rank.' + ind.tipo, modos: modosR,
         subtituloDe: m => (m === 'dif' ? `Diferença da taxa de cada UF para a do Brasil (${fmtV(ind, pbv)}), em p.p.` : m === 'rel' ? (ind.tipo === 'contagem' ? 'Cada UF como % do total do Brasil' : `Cada UF como % do valor do Brasil (${fmtV(ind, pbv)})`) : `${ind.rotulo}, em ${UNID(ind)}`),
         fonteImagem: fonteImg(ind, fam, nomeUf ? `Em destaque: ${nomeUf}; azul claro: demais UFs da região ${nomeReg}.` : undefined),
-        rodape: [fonte(ind, fam)], ajuda: nomeUf ? `Em azul forte, ${nomeUf}; azul claro, as demais UFs da região ${nomeReg}.` : null,
+        rodape: [fonte(ind, fam), avisoFaltam].filter(Boolean), ajuda: nomeUf ? `Em azul forte, ${nomeUf}; azul claro, as demais UFs da região ${nomeReg}.` : null,
         desenhar: (c, ctx) => {
           const vals = ufs.map(u => (ctx.modo === 'rel' ? u.v / pbv * 100 : ctx.modo === 'dif' ? u.v - pbv : u.v));
           const fmt = v => (ctx.modo === 'rel' ? U.fmtNum(v, 1) + '%' : ctx.modo === 'dif' ? sinal(v, ' p.p.') : fmtV(ind, v));
@@ -515,7 +519,7 @@ const PUBLICACOES = (() => {
           MOLDURA.bandeirasNoEixo(chR, ufs.map(u => u.loc));
         } }));
       cont.append(cartaoTabela({ titulo: `Ranking das UFs — tabela`, subtitulo: `${ind.rotulo}, ${rotPer(per, fam)}`, nome: `pnadc_ufs_${ind.id}_${per}`, linhas: ufs, ordenarPor: 'pos',
-        fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam)],
+        fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam), avisoFaltam ? U.el('div', { class: 'mini-info', style: { color: U.COR.atencaoForte } }, avisoFaltam.textContent) : null].filter(Boolean),
         ajuda: `⚠ = precisão razoável ou pior na escala do IBGE (CV acima de 15%). O intervalo é aproximado (± 1,96 × CV): o IBGE não publica teste entre UFs.`,
         colunas: [
           { chave: 'pos', rotulo: 'Posição', num: true },

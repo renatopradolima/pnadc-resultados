@@ -325,6 +325,16 @@ JS_ROTEIRO = r"""
       // grades de cartões equilibradas: nenhuma linha com mais de um cartão a mais que outra
       for (const sec of ['brasil', 'uf', 'capitais']) { await ir('#/publicacoes?sec=' + sec); await espera(500);
         V.bandeiras['grade_' + sec] = Array.from(document.querySelectorAll('#conteudo .grade.g4')).map(g => { const linhas = {}; Array.from(g.children).forEach(k => { const t = Math.round(k.getBoundingClientRect().top); linhas[t] = (linhas[t] || 0) + 1; }); const q = Object.values(linhas); return { n: g.children.length, linhas: q.join('+'), ok: q.length > 0 && Math.max.apply(null, q) - Math.min.apply(null, q) <= 1 }; }); }
+      // ---- ranking das UFs: todas as UFs aparecem (barra, rótulo e linha da tabela) ou a página diz quais faltam
+      { await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(500);
+        const cr = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(x => /Ranking das UFs — Taxa/.test(x.innerText)), cht = cr && Chart.getChart(cr.querySelector('canvas'));
+        V.ranking_ufs = { n: cht ? cht.data.labels.length : 0, linhas_tabela: document.querySelectorAll('#conteudo table.tabela tbody tr').length, aviso: /Sem valor publicado neste período/.test(document.getElementById('conteudo').innerText),
+          zeros: cht ? cht.data.datasets[0].data.filter(v => v === 0).length : -1 }; }
+      // ---- barra de valor ZERO (ex.: UF igual ao Brasil em "Dif. ao Brasil") não pode sumir: traço na base e rótulo "0,0"
+      { const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:0;top:0;width:600px;height:300px;background:#fff;z-index:1'; document.body.appendChild(box);
+        const cvz = G.canvasEm(box, 'grafico'), chz = MOLDURA.estilizar(G.barras(cvz, { labels: ['A', 'B', 'C'], valores: [0, 1.5, -1], horizontal: true, formato: v => (v === 0 ? '0,0 p.p.' : String(v)) }));
+        await espera(700); const chv = MOLDURA.estilizar(G.barras(G.canvasEm(box, 'grafico'), { labels: ['A', 'B'], valores: [0, 2], formato: v => String(v) })); await espera(700);
+        V.zeros = { horizontal: chz._zerosDesenhados, vertical: chv._zerosDesenhados }; box.remove(); }
       // ---- NENHUM rótulo sobre outro nem fora da imagem: todos os mapas e gráficos de linha dos slides
       await ir('#/publicacoes?sec=uf'); await espera(300);
       const D = PUBLICACOES.dados(), sl = APRESENTACAO.slidesDe(D), sobrep = [];
@@ -586,6 +596,10 @@ def teste_casca(ctx, html=None, rotulo='casca'):
                 (rotulo + ': 28 bandeiras distintas, reconhecidas por código, sigla ou nome (%r)') % ({k: v for k, v in bd.items() if not k.startswith('grade_')},))
     ctx.confere(bd.get('abas', 0) >= 2 and bd.get('cabecalho') and bd.get('tabela', 0) >= 27 and bd.get('sem_rede'), (rotulo + ': bandeira nas abas Brasil e UF, ao lado do seletor e na tabela do ranking, todas embutidas (%r)') % ({k: bd.get(k) for k in ('abas', 'cabecalho', 'tabela', 'sem_rede')},))
     ctx.confere(all(g['ok'] for k in ('grade_brasil', 'grade_uf', 'grade_capitais') for g in bd.get(k, [])) and bd.get('grade_uf'), (rotulo + ': cartões-resumo equilibrados por linha (%r)') % ({k: v for k, v in bd.items() if k.startswith('grade_')},))
+    rk2 = v2.get('ranking_ufs') or {}
+    ctx.confere(rk2.get('n') == 27 or rk2.get('aviso'), (rotulo + ': ranking mostra as 27 UFs ou diz quais faltam (%r)') % (rk2,))
+    zz = v2.get('zeros') or {}
+    ctx.confere(zz.get('horizontal') == 1 and zz.get('vertical') == 1, (rotulo + ': barra de valor zero ganha traço e rótulo, na horizontal e na vertical (%r)') % (zz,))
     ctx.confere(not r.get('suspeitos'), (rotulo + ': nenhuma tela mostra null/undefined/NaN/[object] (%s)') % (r.get('suspeitos') or [])[:4])
     ctx.confere(r.get('contato') and r.get('contato_rodape'), rotulo + ': e-mail de contato em Sobre e no rodapé do menu')
     t = r.get('apos_trocar_uf') or {}

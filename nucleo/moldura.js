@@ -700,7 +700,33 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
       ctx.save(); ctx.drawImage(im, x, py, w, h); ctx.strokeStyle = 'rgba(16,42,35,.35)'; ctx.lineWidth = 1; ctx.strokeRect(x - .5, py - .5, w + 1, h + 1); ctx.restore();
     });
   } };
-  if (typeof Chart !== 'undefined' && Chart.register) { try { Chart.register(pluginBandeiras); } catch (e) { /* já registrado */ } }
+  /* VALOR ZERO em barra: o kit não escreve rótulo de valor 0 (faz sentido em pilha, mas não numa diferença: "0,0 p.p." É a informação, e sem
+     barra nem rótulo a UF parecia ausente -- Paraíba e São Paulo no ranking "Dif. ao Brasil", 04/11/2026). Aqui o zero ganha um traço na base e o rótulo. */
+  const pluginZeros = { id: 'zerosVisiveis', afterDatasetsDraw(ch) {
+    if (ch.config.type !== 'bar') return;
+    // as opções do gráfico (ch.options) são um proxy que EXECUTA funções ("formato" viraria recursão): o que é função vem do objeto bruto, ch.config.options
+    const bruto = (ch.config.options && ch.config.options.plugins && ch.config.options.plugins.rotulosValor) || null, op = bruto, horizontal = ch.options.indexAxis === 'y', ctx = ch.ctx;
+    let n = 0;
+    ch.data.datasets.forEach((ds, k) => {
+      const meta = ch.getDatasetMeta(k); if (meta.hidden) return;
+      meta.data.forEach((el, j) => {
+        if (ds.data[j] !== 0 || !el) return;
+        n++;
+        const cor = Array.isArray(ds.backgroundColor) ? ds.backgroundColor[j] : ds.backgroundColor;
+        ctx.save();
+        ctx.fillStyle = typeof cor === 'string' ? cor : '#8199ad';
+        if (horizontal) ctx.fillRect(el.x - 1.5, el.y - el.height / 2, 3, el.height); else ctx.fillRect(el.x - el.width / 2, el.y - 1.5, el.width, 3);
+        if (op && op.ativo) {
+          ctx.font = '600 11px "Segoe UI", system-ui, sans-serif'; ctx.fillStyle = '#2b3a32'; ctx.textBaseline = 'middle';
+          const t = op.formato ? op.formato(0) : '0';
+          if (horizontal) { ctx.textAlign = 'left'; ctx.fillText(t, el.x + 8, el.y); } else { ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(t, el.x, el.y - 6); }
+        }
+        ctx.restore();
+      });
+    });
+    ch._zerosDesenhados = n;
+  } };
+  if (typeof Chart !== 'undefined' && Chart.register) { try { Chart.register(pluginBandeiras); Chart.register(pluginZeros); } catch (e) { /* já registrado */ } }
   function bandeirasNoEixo(ch, codigos, altura) {
     if (!ch || typeof BANDEIRAS === 'undefined') return ch;
     const h = altura || 14;
