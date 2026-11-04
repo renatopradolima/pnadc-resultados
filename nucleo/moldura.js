@@ -660,8 +660,12 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
     document.addEventListener('keydown', ev => { if (ev.key === 'Escape') esconder(); });
   }
 
+  /* Cores dos DADOS que não são situação publicada: foco em azul forte, o resto em azuis legíveis (nunca cinza claro).
+     Verde e vermelho ficam reservados à situação publicada pelo IBGE (significativa); "estavel" é o neutro azul-ardósia. */
+  const COR = { foco: '#1a5fb4', regiao: '#5b9bd5', demais: '#8fb7e6', estavel: '#8199ad', brasil: '#37474f' };
+
   injetarCss();
   ligarDicas();
-  return { cartao, faixaSlider, icone, logo, desenharLogo, hero, botaoHero, seg, sparkline, estilizar, injetarCss, fecharCheia, imagemDoCartao, compor, baixarCanvas, nomeArq,
+  return { COR, cartao, faixaSlider, icone, logo, desenharLogo, hero, botaoHero, seg, sparkline, estilizar, injetarCss, fecharCheia, imagemDoCartao, compor, baixarCanvas, nomeArq,
     tabelaParaCanvas, quebrar, hojeBr, modoLembrado, lembrarModo, ICONES, _cheiaAberta: () => !!aberta };
 })();

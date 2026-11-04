@@ -103,7 +103,7 @@ const RELEASES = (() => {
   function corEstado(estado, sentido) {
     if (estado === 'aumentou' || estado === 'diminuiu') { const j = (sentido || 0) * (estado === 'aumentou' ? 1 : -1); return j > 0 ? U.COR.bom : j < 0 ? U.COR.ruim : U.COR.estrutura; }
     if (estado === 'estavel') return U.COR.neutro3;
-    return '#b0bec5';
+    return MOLDURA.COR.estavel;
   }
   const SIMB = { aumentou: '▲', diminuiu: '▼', estavel: '●' };
   /* `quebrar` limitado a `max` linhas; o que não cabe termina em reticências */
@@ -201,7 +201,7 @@ const RELEASES = (() => {
     spec.labels.forEach((l, i) => { if (i === ultL || (i % passo === 0 && ultL - i >= passo * 0.8)) c.fillText(l, X(i), y1 + 8); });
     const rot = [];
     spec.series.slice().reverse().forEach(s => {
-      const cor = s.destaque ? U.COR.estrutura : s.tracejado ? '#37474f' : '#90a4ae';
+      const cor = s.destaque ? U.COR.estrutura : s.tracejado ? '#37474f' : MOLDURA.COR.demais;
       c.strokeStyle = cor; c.lineWidth = s.destaque ? 4 : 2.5;
       c.setLineDash(s.tracejado ? [8, 6] : []); c.beginPath(); let ini = false;
       s.dados.forEach((v, i) => { if (v === null || v === undefined) { ini = false; return; } if (!ini) { c.moveTo(X(i), Y(v)); ini = true; } else c.lineTo(X(i), Y(v)); });
@@ -239,7 +239,7 @@ const RELEASES = (() => {
     }
     spec.itens.forEach((it, i) => {
       const y = y0 + i * h;
-      c.fillStyle = it.destaque ? U.COR.estrutura : '#b0bec5'; c.fillRect(x0, y + h * 0.18, X(it.valor) - x0, h * 0.64);
+      c.fillStyle = it.destaque ? U.COR.estrutura : MOLDURA.COR.demais; c.fillRect(x0, y + h * 0.18, X(it.valor) - x0, h * 0.64);
       c.font = `${it.destaque ? 700 : 400} 16px ${FONTE}`; c.fillStyle = '#243b53'; c.textAlign = 'right'; c.textBaseline = 'middle';
       c.fillText(`${it.nome || it.rotulo}`, x0 - 10, y + h / 2);
       c.textAlign = 'left'; c.fillText(RM.fmtVis(spec.ind, it.valor), X(it.valor) + 8, y + h / 2);
@@ -336,7 +336,7 @@ const RELEASES = (() => {
     c.fillText(`○ ${spec.perDe}   ● ${spec.perPara}`, x0, y0 - 6);
     spec.linhas.forEach((l, i) => {
       const y = y0 + i * h + h / 2, cor = corEstado(l.estado, l.sentido), est = l.estado === 'estavel' || l.estado === 'sem';
-      c.strokeStyle = est ? '#b0bec5' : cor; c.lineWidth = 5; c.beginPath(); c.moveTo(X(l.de), y); c.lineTo(X(l.para), y); c.stroke();
+      c.strokeStyle = est ? MOLDURA.COR.estavel : cor; c.lineWidth = 5; c.beginPath(); c.moveTo(X(l.de), y); c.lineTo(X(l.para), y); c.stroke();
       c.lineWidth = 3; c.fillStyle = '#fff'; c.beginPath(); c.arc(X(l.de), y, 8, 0, 7); c.fill(); c.stroke();
       c.fillStyle = est ? '#78909c' : cor; c.beginPath(); c.arc(X(l.para), y, 9, 0, 7); c.fill();
       c.fillStyle = '#243b53'; c.font = `600 16px ${FONTE}`; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(l.rotulo, x0 - 24, y);
@@ -392,7 +392,7 @@ const RELEASES = (() => {
       if (n <= 6) {
         its.forEach((b, k) => {
           const yy = top + k * hh, fs = Math.min(36, Math.round(hh * 0.36));
-          c.fillStyle = b.destaque ? U.COR.estrutura : '#b0bec5'; c.fillRect(60, yy + hh * 0.42, (W - 300) * b.valor / vmax, hh * 0.48);
+          c.fillStyle = b.destaque ? U.COR.estrutura : MOLDURA.COR.demais; c.fillRect(60, yy + hh * 0.42, (W - 300) * b.valor / vmax, hh * 0.48);
           c.fillStyle = '#243b53'; c.font = `${b.destaque ? 800 : 500} ${fs}px ${FONTE}`; c.fillText(b.rotulo, 60, yy);
           c.fillText(RM.fmtVis(ind, b.valor), 80 + (W - 300) * b.valor / vmax, yy + hh * 0.42);
         });
@@ -402,7 +402,7 @@ const RELEASES = (() => {
         c.textBaseline = 'middle';
         its.forEach((b, k) => {
           const yc = top + k * hh + hh / 2;
-          c.fillStyle = b.destaque ? U.COR.estrutura : '#b0bec5'; c.fillRect(x0, yc - hh * 0.32, larg * b.valor / vmax, hh * 0.64);
+          c.fillStyle = b.destaque ? U.COR.estrutura : MOLDURA.COR.demais; c.fillRect(x0, yc - hh * 0.32, larg * b.valor / vmax, hh * 0.64);
           c.fillStyle = '#243b53'; c.font = `${b.destaque ? 800 : 500} ${fs}px ${FONTE}`;
           c.textAlign = 'right'; c.fillText(b.rotulo, x0 - 14, yc); c.textAlign = 'left'; c.fillText(RM.fmtVis(ind, b.valor), x0 + larg * b.valor / vmax + 10, yc);
         });

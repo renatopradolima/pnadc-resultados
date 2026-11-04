@@ -508,7 +508,7 @@ const PUBLICACOES = (() => {
           const fmt = v => (ctx.modo === 'rel' ? U.fmtNum(v, 1) + '%' : ctx.modo === 'dif' ? sinal(v, ' p.p.') : fmtV(ind, v));
           const cv = G.canvasEm(c, ctx.cheia ? 'mo-grafico-cheio' : 'grafico');
           MOLDURA.estilizar(G.barras(cv, { labels: ufs.map(u => u.nome), valores: vals, horizontal: true, formato: fmt,
-            cores: ufs.map(u => (u.minha ? U.COR.estrutura : u.regiao ? '#90caf9' : U.COR.neutro2)) }));
+            cores: ufs.map(u => (u.minha ? U.COR.estrutura : u.regiao ? MOLDURA.COR.regiao : MOLDURA.COR.demais)) }));
         } }));
       cont.append(cartaoTabela({ titulo: `Ranking das UFs — tabela`, subtitulo: `${ind.rotulo}, ${rotPer(per, fam)}`, nome: `pnadc_ufs_${ind.id}_${per}`, linhas: ufs, ordenarPor: 'pos',
         fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam)],
@@ -649,7 +649,7 @@ const PUBLICACOES = (() => {
       desenhar: (c, ctx) => {
         const cv = G.canvasEm(c, ctx.cheia ? 'mo-grafico-cheio' : 'grafico');
         MOLDURA.estilizar(G.barras(cv, { labels: linhas.map(l => (l.tipo === 'Capital' ? l.nome : l.nome + ' (RM)')), valores: linhas.map(l => l.v), horizontal: true,
-          formato: v => fmtV(ind, v), cores: linhas.map(l => (l.tipo === 'Capital' ? U.COR.estrutura : '#90caf9')) }));
+          formato: v => fmtV(ind, v), cores: linhas.map(l => (l.tipo === 'Capital' ? U.COR.estrutura : MOLDURA.COR.regiao)) }));
       } }));
     cont.append(cartaoTabela({ titulo: 'Capitais e regiões metropolitanas — tabela', subtitulo: `${ind.rotulo}, ${rotPer(per, fam)}`, nome: `pnadc_capitais_${ind.id}_${per}_tabela`, linhas,
       fonteImagem: fonteImg(ind, fam), rodape: [fonte(ind, fam)], ajuda: 'Azul forte: capital; azul claro: região metropolitana. ⚠ = precisão razoável ou pior (CV acima de 15%).',
@@ -798,7 +798,7 @@ const PUBLICACOES = (() => {
         const cv = G.canvasEm(c, ctx.cheia ? 'mo-grafico-cheio' : 'grafico');
         MOLDURA.estilizar(G.barras(cv, { labels: lista.map(l => l.ind.curto), valores: lista.map(l => (ctx.modo === 'abs' ? l.dif : l.rel)), horizontal: true,
           formato: v => (ctx.modo === 'abs' ? sinal(v, ' p.p.') : sinal(v, '%')),
-          cores: lista.map(l => (l.cmp.publicada && (l.cmp.estado === 'alta' || l.cmp.estado === 'queda') ? l.cmp.cor : '#90a4ae')) }));
+          cores: lista.map(l => (l.cmp.publicada && (l.cmp.estado === 'alta' || l.cmp.estado === 'queda') ? l.cmp.cor : MOLDURA.COR.estavel)) }));
       } }));
     // ---- tabela
     cont.append(cartaoTabela({ titulo: 'Todos os indicadores', subtitulo: `${t.nome}: ${rotPer(a, fam)} → ${rotPer(b, fam)}`, nome: `pnadc_comparar_${t.id}_${a}_${b}_tabela`, linhas,
