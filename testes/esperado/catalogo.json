@@ -1,0 +1,605 @@
+{
+ "indicadores": [
+  {
+   "casas": 1,
+   "curto": "desocupação",
+   "definicao": "Pessoas desocupadas (sem trabalho, que tomaram providência para consegui-lo e estavam disponíveis) em % das pessoas na força de trabalho, 14 anos ou mais.",
+   "id": "desocupacao",
+   "movel": {
+    "cv": "4103",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8819",
+    "sit_curta": "8814",
+    "tabela": "6381",
+    "valor": "4099",
+    "var_ano": "8816",
+    "var_curta": "8811"
+   },
+   "rotulo": "Taxa de desocupação",
+   "sentido": -1,
+   "tipo": "taxa",
+   "trimestral": {
+    "cv": "4103",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3",
+     "N6",
+     "N7"
+    ],
+    "sit_ano": "9131",
+    "sit_curta": "9130",
+    "tabela": "6468",
+    "valor": "4099",
+    "var_ano": "9405",
+    "var_curta": "9402"
+   },
+   "unidade": "%",
+   "unidade_var": "p.p."
+  },
+  {
+   "casas": 1,
+   "curto": "nível da ocupação",
+   "definicao": "Pessoas ocupadas em % das pessoas de 14 anos ou mais de idade.",
+   "id": "ocupacao",
+   "movel": {
+    "cv": "4101",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8797",
+    "sit_curta": "8792",
+    "tabela": "6379",
+    "valor": "4097",
+    "var_ano": "8794",
+    "var_curta": "8789"
+   },
+   "rotulo": "Nível da ocupação",
+   "sentido": 1,
+   "tipo": "taxa",
+   "trimestral": {
+    "cv": "4101",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9127",
+    "sit_curta": "9126",
+    "tabela": "6466",
+    "valor": "4097",
+    "var_ano": "9393",
+    "var_curta": "9390"
+   },
+   "unidade": "%",
+   "unidade_var": "p.p."
+  },
+  {
+   "casas": 1,
+   "curto": "participação",
+   "definicao": "Pessoas na força de trabalho (ocupadas + desocupadas) em % das pessoas de 14 anos ou mais.",
+   "id": "participacao",
+   "movel": {
+    "cv": "4100",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8786",
+    "sit_curta": "8781",
+    "tabela": "5944",
+    "valor": "4096",
+    "var_ano": "8783",
+    "var_curta": "8778"
+   },
+   "rotulo": "Taxa de participação na força de trabalho",
+   "sentido": 0,
+   "tipo": "taxa",
+   "trimestral": {
+    "cv": "4100",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9125",
+    "sit_curta": "9124",
+    "tabela": "6461",
+    "valor": "4096",
+    "var_ano": "9387",
+    "var_curta": "9384"
+   },
+   "unidade": "%",
+   "unidade_var": "p.p."
+  },
+  {
+   "casas": 1,
+   "curto": "informalidade",
+   "definicao": "Ocupados sem carteira (setor privado e doméstico), empregadores e conta própria sem CNPJ e trabalhador familiar auxiliar, em % dos ocupados. Série desde o fim de 2015.",
+   "id": "informalidade",
+   "movel": {
+    "cv": "12467",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "12471",
+    "sit_curta": "12469",
+    "tabela": "8513",
+    "valor": "12466",
+    "var_ano": "12470",
+    "var_curta": "12468"
+   },
+   "rotulo": "Taxa de informalidade",
+   "sentido": -1,
+   "tipo": "taxa",
+   "trimestral": {
+    "cv": "12467",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "12520",
+    "sit_curta": "12518",
+    "tabela": "8529",
+    "valor": "12466",
+    "var_ano": "12519",
+    "var_curta": "12517"
+   },
+   "unidade": "%",
+   "unidade_var": "p.p."
+  },
+  {
+   "casas": 1,
+   "curto": "subutilização",
+   "definicao": "Desocupados + subocupados por insuficiência de horas + força de trabalho potencial, em % da força de trabalho ampliada.",
+   "id": "subutilizacao",
+   "movel": {
+    "cv": "4119",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8666",
+    "sit_curta": "8662",
+    "tabela": "6441",
+    "valor": "4118",
+    "var_ano": "8663",
+    "var_curta": "8659"
+   },
+   "rotulo": "Taxa composta de subutilização",
+   "sentido": -1,
+   "tipo": "taxa",
+   "trimestral": {
+    "cv": "4119",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9383",
+    "sit_curta": "9379",
+    "tabela": "6485",
+    "valor": "4118",
+    "var_ano": "9380",
+    "var_curta": "9376"
+   },
+   "unidade": "%",
+   "unidade_var": "p.p."
+  },
+  {
+   "casas": 1,
+   "curto": "desalento",
+   "definicao": "Pessoas desalentadas (queriam trabalhar, estavam disponíveis, mas não procuraram por achar que não conseguiriam) em % da força de trabalho mais os desalentados.",
+   "id": "desalento",
+   "movel": {
+    "cv": "9870",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "9878",
+    "sit_curta": "9874",
+    "tabela": "6807",
+    "valor": "9869",
+    "var_ano": "9875",
+    "var_curta": "9871"
+   },
+   "rotulo": "Percentual de desalentados",
+   "sentido": -1,
+   "tipo": "taxa",
+   "trimestral": {
+    "cv": "9870",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9926",
+    "sit_curta": "9922",
+    "tabela": "6813",
+    "valor": "9869",
+    "var_ano": "9923",
+    "var_curta": "9919"
+   },
+   "unidade": "%",
+   "unidade_var": "p.p."
+  },
+  {
+   "casas": 0,
+   "curto": "rendimento médio real",
+   "definicao": "Rendimento médio mensal real, habitualmente recebido em todos os trabalhos, das pessoas ocupadas com rendimento (a preços do último período). A variação é percentual.",
+   "id": "rendimento",
+   "movel": {
+    "cv": "5941",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8841",
+    "sit_curta": "8836",
+    "tabela": "6390",
+    "valor": "5933",
+    "var_ano": "8837",
+    "var_curta": "8832"
+   },
+   "rotulo": "Rendimento médio real habitual",
+   "sentido": 1,
+   "tipo": "rendimento",
+   "trimestral": {
+    "cv": "5941",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3",
+     "N6",
+     "N7"
+    ],
+    "sit_ano": "9151",
+    "sit_curta": "9146",
+    "tabela": "6472",
+    "valor": "5933",
+    "var_ano": "9147",
+    "var_curta": "9142"
+   },
+   "unidade": "R$",
+   "unidade_var": "%"
+  },
+  {
+   "casas": 0,
+   "curto": "pessoas ocupadas",
+   "definicao": "Pessoas de 14 anos ou mais ocupadas na semana de referência, em mil pessoas. A variação é percentual.",
+   "id": "ocupados",
+   "movel": {
+    "cv": "4091",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8439",
+    "sit_curta": "8434",
+    "tabela": "6320",
+    "valor": "4090",
+    "var_ano": "8435",
+    "var_curta": "8430"
+   },
+   "rotulo": "Pessoas ocupadas",
+   "sentido": 1,
+   "tipo": "contagem",
+   "trimestral": {
+    "cv": "4091",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9121",
+    "sit_curta": "9116",
+    "tabela": "6459",
+    "valor": "4090",
+    "var_ano": "9117",
+    "var_curta": "9112"
+   },
+   "unidade": "mil pessoas",
+   "unidade_var": "%"
+  }
+ ],
+ "legenda": "Símbolos: legenda oficial das tabelas do SIDRA (sidra.ibge.gov.br). Situação da variação: o SIDRA só diz \"A a Z (exceto X): faixa de valores, varia em função da tabela\"; a nota técnica 06/2021 e o Quadro Sintético da PNADC usam Estável / Cresceu / Decresceu por teste de hipóteses. A leitura 'A' = estável e 'Z' = significativa (sentido pelo sinal) foi conferida nos dados em 26/10/2026, nas 16 tabelas: variação 0,0 é sempre 'A', salvo um caso de arredondamento em 30.884; '-' = sem comparação. Nível de confiança: 95%. Precisão pelo CV, escala do IBGE: até 5% ótima, 5-15% boa, 15-30% razoável, 30-50% pouco precisa, acima de 50% imprecisa.",
+ "precisao": [
+  [
+   5,
+   "ótima"
+  ],
+  [
+   15,
+   "boa"
+  ],
+  [
+   30,
+   "razoável"
+  ],
+  [
+   50,
+   "pouco precisa"
+  ],
+  [
+   null,
+   "imprecisa"
+  ]
+ ],
+ "tabelas": [
+  [
+   "6381",
+   "movel",
+   {
+    "cv": "4103",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8819",
+    "sit_curta": "8814",
+    "tabela": "6381",
+    "valor": "4099",
+    "var_ano": "8816",
+    "var_curta": "8811"
+   }
+  ],
+  [
+   "6468",
+   "trimestral",
+   {
+    "cv": "4103",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3",
+     "N6",
+     "N7"
+    ],
+    "sit_ano": "9131",
+    "sit_curta": "9130",
+    "tabela": "6468",
+    "valor": "4099",
+    "var_ano": "9405",
+    "var_curta": "9402"
+   }
+  ],
+  [
+   "6379",
+   "movel",
+   {
+    "cv": "4101",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8797",
+    "sit_curta": "8792",
+    "tabela": "6379",
+    "valor": "4097",
+    "var_ano": "8794",
+    "var_curta": "8789"
+   }
+  ],
+  [
+   "6466",
+   "trimestral",
+   {
+    "cv": "4101",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9127",
+    "sit_curta": "9126",
+    "tabela": "6466",
+    "valor": "4097",
+    "var_ano": "9393",
+    "var_curta": "9390"
+   }
+  ],
+  [
+   "5944",
+   "movel",
+   {
+    "cv": "4100",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8786",
+    "sit_curta": "8781",
+    "tabela": "5944",
+    "valor": "4096",
+    "var_ano": "8783",
+    "var_curta": "8778"
+   }
+  ],
+  [
+   "6461",
+   "trimestral",
+   {
+    "cv": "4100",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9125",
+    "sit_curta": "9124",
+    "tabela": "6461",
+    "valor": "4096",
+    "var_ano": "9387",
+    "var_curta": "9384"
+   }
+  ],
+  [
+   "8513",
+   "movel",
+   {
+    "cv": "12467",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "12471",
+    "sit_curta": "12469",
+    "tabela": "8513",
+    "valor": "12466",
+    "var_ano": "12470",
+    "var_curta": "12468"
+   }
+  ],
+  [
+   "8529",
+   "trimestral",
+   {
+    "cv": "12467",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "12520",
+    "sit_curta": "12518",
+    "tabela": "8529",
+    "valor": "12466",
+    "var_ano": "12519",
+    "var_curta": "12517"
+   }
+  ],
+  [
+   "6441",
+   "movel",
+   {
+    "cv": "4119",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8666",
+    "sit_curta": "8662",
+    "tabela": "6441",
+    "valor": "4118",
+    "var_ano": "8663",
+    "var_curta": "8659"
+   }
+  ],
+  [
+   "6485",
+   "trimestral",
+   {
+    "cv": "4119",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9383",
+    "sit_curta": "9379",
+    "tabela": "6485",
+    "valor": "4118",
+    "var_ano": "9380",
+    "var_curta": "9376"
+   }
+  ],
+  [
+   "6807",
+   "movel",
+   {
+    "cv": "9870",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "9878",
+    "sit_curta": "9874",
+    "tabela": "6807",
+    "valor": "9869",
+    "var_ano": "9875",
+    "var_curta": "9871"
+   }
+  ],
+  [
+   "6813",
+   "trimestral",
+   {
+    "cv": "9870",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9926",
+    "sit_curta": "9922",
+    "tabela": "6813",
+    "valor": "9869",
+    "var_ano": "9923",
+    "var_curta": "9919"
+   }
+  ],
+  [
+   "6390",
+   "movel",
+   {
+    "cv": "5941",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8841",
+    "sit_curta": "8836",
+    "tabela": "6390",
+    "valor": "5933",
+    "var_ano": "8837",
+    "var_curta": "8832"
+   }
+  ],
+  [
+   "6472",
+   "trimestral",
+   {
+    "cv": "5941",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3",
+     "N6",
+     "N7"
+    ],
+    "sit_ano": "9151",
+    "sit_curta": "9146",
+    "tabela": "6472",
+    "valor": "5933",
+    "var_ano": "9147",
+    "var_curta": "9142"
+   }
+  ],
+  [
+   "6320",
+   "movel",
+   {
+    "cv": "4091",
+    "niveis": [
+     "N1"
+    ],
+    "sit_ano": "8439",
+    "sit_curta": "8434",
+    "tabela": "6320",
+    "valor": "4090",
+    "var_ano": "8435",
+    "var_curta": "8430"
+   }
+  ],
+  [
+   "6459",
+   "trimestral",
+   {
+    "cv": "4091",
+    "niveis": [
+     "N1",
+     "N2",
+     "N3"
+    ],
+    "sit_ano": "9121",
+    "sit_curta": "9116",
+    "tabela": "6459",
+    "valor": "4090",
+    "var_ano": "9117",
+    "var_curta": "9112"
+   }
+  ]
+ ]
+}

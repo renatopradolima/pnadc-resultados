@@ -2,4 +2,4 @@
    SuperC: dá para ver de relance se os dois estão alinhados. Suba o número a cada mudança do núcleo que o
    SuperC deva receber. Dono: PNADC_Resultados. */
 'use strict';
-const VERSAO_NUCLEO = '0.4.0';
+const VERSAO_NUCLEO = '0.5.0';

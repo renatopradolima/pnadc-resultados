@@ -23,6 +23,7 @@ const RELEASES = (() => {
     ST = salvo && salvo.E ? salvo : { E: RM.padrao(hojeIso()), texto: null, base: null, marcados: {}, visuaisManuais: false, rascunhoId: null };
     ST.dono = login();
     ST.E = RM.normalizar(ST.E);
+    if (!D.uf.codigo && ST.E.territorio === 'uf') ST.E.territorio = 'brasil';   // sem UF em destaque, o release começa pelo Brasil
     if (!ST.E.indicadores) { const o = RM.ordemSugerida(D, ST.E).filter(x => !x.it.indisponivel); ST.E.indicadores = o.slice(0, 5).map(x => x.id); }
     if (!ST.E.visuais) ST.E.visuais = RM.sugerirVisuais(ST.E);
     return ST;
@@ -49,34 +50,51 @@ const RELEASES = (() => {
   const textoAtual = doc => (ST.texto !== null && ST.texto !== undefined ? ST.texto : doc.texto);
 
   // ------------------------------------------------------------------ mini markdown -> HTML (tudo escapado)
+  /* tabela em linhas "| a | b |" (Markdown), em QUALQUER ponto do texto: o primeiro grupo de linhas é o cabeçalho */
+  function tabelaHtml(ls, inline) {
+    const cel = l => l.replace(/^\s*\||\|\s*$/g, '').split('|').map(c => c.trim());
+    const sep = l => /^[\s|:-]+$/.test(l) && /-/.test(l);
+    const cab = cel(ls[0]), corpo = ls.slice(1).filter(l => !sep(l)).map(cel);
+    return '<table class="rel-tab"><thead><tr>' + cab.map((c, i) => `<th${i ? ' class="n"' : ''}>${inline(c)}</th>`).join('') + '</tr></thead><tbody>' +
+      corpo.map(r => '<tr>' + r.map((c, i) => `<td${i ? ' class="n"' : ''}>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>';
+  }
+  const paragrafoHtml = (linhas, inline) => {
+    const t = linhas.join(' ');
+    return `<p${/^Fontes?:/i.test(t) ? ' class="fonte"' : ''}>${linhas.map(inline).join('<br>')}</p>`;
+  };
   function mdHtml(md) {
     const inline = s => U.esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;])/g, '$1<i>$2</i>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-    const out = []; const blocos = String(md).split(/\n\s*\n/);
-    for (const b of blocos) {
-      const ls = b.split('\n');
-      if (/^\|/.test(ls[0]) && ls.length > 2) {
-        const cel = l => l.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
-        out.push('<table class="rel-tab"><thead><tr>' + cel(ls[0]).map(c => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>' +
-          ls.slice(2).filter(l => /^\|/.test(l)).map(l => '<tr>' + cel(l).map((c, i) => `<td${i ? ' style="text-align:right"' : ''}>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
-        continue;
-      }
-      let html = '', lista = [];
+    const out = [];
+    String(md).split(/\n\s*\n/).forEach(bloco => {
+      let html = '', lista = [], par = [], tab = [];
       const fechaLista = () => { if (lista.length) { html += '<ul>' + lista.map(x => `<li>${inline(x)}</li>`).join('') + '</ul>'; lista = []; } };
-      const paragrafo = [];
-      const fechaPar = () => { if (paragrafo.length) { html += `<p>${paragrafo.map(inline).join('<br>')}</p>`; paragrafo.length = 0; } };
-      for (const l of ls) {
+      const fechaPar = () => { if (par.length) { html += paragrafoHtml(par, inline); par = []; } };
+      const fechaTab = () => { if (tab.length) { html += tabelaHtml(tab, inline); tab = []; } };
+      bloco.split('\n').forEach(l => {
         let m;
+        if (/^\s*\|/.test(l)) { fechaPar(); fechaLista(); tab.push(l); return; }
+        fechaTab();
         if ((m = /^(#{1,3})\s+(.*)$/.exec(l))) { fechaPar(); fechaLista(); const h = m[1].length === 1 ? 'h1' : m[1].length === 2 ? 'h2' : 'h3'; html += `<${h}>${inline(m[2])}</${h}>`; }
         else if (/^- /.test(l)) { fechaPar(); lista.push(l.slice(2)); }
         else if (/^>\s?/.test(l)) { fechaPar(); fechaLista(); html += `<blockquote>${inline(l.replace(/^>\s?/, ''))}</blockquote>`; }
-        else { fechaLista(); paragrafo.push(l); }
-      }
-      fechaPar(); fechaLista();
+        else { fechaLista(); par.push(l); }
+      });
+      fechaTab(); fechaPar(); fechaLista();
       out.push(html);
-    }
+    });
     return out.join('\n');
   }
-  const planoHtml = t => String(t).split(/\n\s*\n/).map(p => `<p>${U.esc(p).replace(/\n/g, '<br>')}</p>`).join('\n');
+  function planoHtml(t) {
+    const inline = x => U.esc(x);
+    return String(t).split(/\n\s*\n/).map(bloco => {
+      let html = '', par = [], tab = [];
+      const fechaPar = () => { if (par.length) { html += paragrafoHtml(par, inline); par = []; } };
+      const fechaTab = () => { if (tab.length) { html += tabelaHtml(tab, inline); tab = []; } };
+      bloco.split('\n').forEach(l => { if (/^\s*\|/.test(l)) { fechaPar(); tab.push(l); } else { fechaTab(); par.push(l); } });
+      fechaTab(); fechaPar();
+      return html;
+    }).join('\n');
+  }
   const textoParaPlano = (t, doc) => (doc.formato === 'md' ? RM.planoDeMd(t) : t);
 
   // ------------------------------------------------------------------ IMAGENS (canvas)
@@ -116,9 +134,61 @@ const RELEASES = (() => {
     rod.forEach((l, i) => c.fillText(l, 30, H - 14 - (rod.length - i) * Math.round(W / 58)));
     return { cv, c, topo: y + 12, base: H - 24 - rod.length * Math.round(W / 58) };
   }
+  /* RÓTULOS SEM SOBREPOSIÇÃO (regra: nenhum rótulo pode cobrir outro, em lugar nenhum).
+     `espalhar` recebe as posições verticais desejadas e devolve posições com pelo menos `d` entre os centros, dentro de
+     [topo, base], mantendo a ordem. Precisa de espaço: n × d <= base - topo. */
+  function espalhar(ys, d, topo, base) {
+    const n = ys.length;
+    if (!n) return [];
+    const ord = ys.map((y, i) => ({ y, i })).sort((a, b) => a.y - b.y || a.i - b.i), p = ord.map(o => o.y);
+    for (let it = 0; it < 300; it++) {
+      let mexeu = false;
+      for (let k = 1; k < n; k++) { const f = d - (p[k] - p[k - 1]); if (f > 0.01) { p[k - 1] -= f / 2; p[k] += f / 2; mexeu = true; } }
+      if (p[0] < topo) { p[0] = topo; mexeu = true; }
+      if (p[n - 1] > base) { p[n - 1] = base; mexeu = true; }
+      if (!mexeu) break;
+    }
+    for (let k = 1; k < n; k++) if (p[k] < p[k - 1] + d) p[k] = p[k - 1] + d;
+    for (let k = n - 2; k >= 0; k--) if (p[k] > p[k + 1] - d) p[k] = p[k + 1] - d;
+    const out = [];
+    ord.forEach((o, k) => { out[o.i] = p[k]; });
+    return out;
+  }
+  const cruza = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  /* Posição de todos os rótulos do MAPA das UFs. Cada UF tenta o rótulo DENTRO, no maior tamanho de letra que cabe no
+     maior círculo que a UF comporta (os círculos de UFs diferentes não se tocam, então os rótulos de dentro nunca se
+     sobrepõem); as que não cabem (DF, SE, AL, RJ, ES, RN, PB, PE...) vão para uma coluna à direita, distribuída por
+     `espalhar`, com um traço até a UF. `medir(texto, tamanho, peso)` mede em px. Devolve { sc, ox, oy, itens, ok }. */
+  function layoutMapa(spec, area, medir, fmt) {
+    const M = MAPA_UF, COL = 250;
+    const sc = Math.min((area.w - COL) / M.w, area.h / M.h), ox = area.x, oy = area.y + (area.h - M.h * sc) / 2;
+    const dentro = [], fora = [];
+    spec.casas.forEach(k => {
+      const g = M.ufs[k.sigla];
+      if (!g) return;
+      const px = ox + g.x * sc, py = oy + g.y * sc, R = g.r * sc;
+      const val = k.valor === null || k.valor === undefined ? '–' : fmt(k.valor), sim = SIMB[k.estado] || '–';
+      let caixa = null;
+      for (let fs = 32; fs >= 14 && !caixa; fs--) {
+        const f2 = Math.round(fs * 0.8), w = Math.max(medir(k.sigla, fs, 800), medir(`${val} ${sim}`, f2, 600)), h = fs * 1.12 + f2 * 1.25;
+        if (Math.hypot(w / 2, h / 2) <= R * 0.93) caixa = { fs, f2, w, h };
+      }
+      const it = { sigla: k.sigla, k, val, sim, px, py, R };
+      if (caixa) dentro.push(Object.assign(it, { dentro: true, fs: caixa.fs, f2: caixa.f2, rect: { x: px - caixa.w / 2, y: py - caixa.h / 2, w: caixa.w, h: caixa.h } }));
+      else fora.push(it);
+    });
+    const FS = 19, H = 28, xCol = ox + M.w * sc + 34;
+    fora.forEach(it => { it.w = 22 + medir(`${it.sigla}  ${it.val} ${it.sim}`, FS, 700); });
+    const ys = espalhar(fora.map(it => it.py), H + 4, oy + H / 2, oy + M.h * sc - H / 2);
+    fora.forEach((it, i) => { it.dentro = false; it.fs = FS; it.ly = ys[i]; it.rect = { x: xCol, y: ys[i] - H / 2, w: it.w, h: H }; });
+    const itens = dentro.concat(fora);
+    let ok = true;
+    for (let i = 0; i < itens.length; i++) for (let j = i + 1; j < itens.length; j++) if (cruza(itens[i].rect, itens[j].rect)) ok = false;
+    return { sc, ox, oy, itens, ok, xCol };
+  }
   function desenharLinha(spec) {
     const W = 1200, H = 675, m = moldura(spec, W, H), c = m.c;
-    const x0 = 80, x1 = W - 190, y0 = m.topo + 10, y1 = m.base - 34;
+    const x0 = 80, x1 = W - 250, y0 = m.topo + 10, y1 = m.base - 34;
     const todos = [].concat.apply([], spec.series.map(s => s.dados)).filter(v => v !== null && v !== undefined);
     const vmax = Math.max.apply(null, todos) * 1.1 || 1;   // escala de 0 ao máximo + 10% (§8.2)
     const X = i => x0 + (x1 - x0) * (spec.labels.length > 1 ? i / (spec.labels.length - 1) : 0.5), Y = v => y1 - (y1 - y0) * v / vmax;
@@ -129,18 +199,33 @@ const RELEASES = (() => {
     const ultL = spec.labels.length - 1;
     // o último rótulo sempre aparece; o regular que ficaria colado nele sai
     spec.labels.forEach((l, i) => { if (i === ultL || (i % passo === 0 && ultL - i >= passo * 0.8)) c.fillText(l, X(i), y1 + 8); });
+    const rot = [];
     spec.series.slice().reverse().forEach(s => {
-      c.strokeStyle = s.destaque ? U.COR.estrutura : s.tracejado ? '#37474f' : '#90a4ae'; c.lineWidth = s.destaque ? 4 : 2.5;
+      const cor = s.destaque ? U.COR.estrutura : s.tracejado ? '#37474f' : '#90a4ae';
+      c.strokeStyle = cor; c.lineWidth = s.destaque ? 4 : 2.5;
       c.setLineDash(s.tracejado ? [8, 6] : []); c.beginPath(); let ini = false;
       s.dados.forEach((v, i) => { if (v === null || v === undefined) { ini = false; return; } if (!ini) { c.moveTo(X(i), Y(v)); ini = true; } else c.lineTo(X(i), Y(v)); });
       c.stroke(); c.setLineDash([]);
       let j = s.dados.length - 1; while (j >= 0 && (s.dados[j] === null || s.dados[j] === undefined)) j--;
       if (j >= 0) {
-        c.fillStyle = c.strokeStyle; c.beginPath(); c.arc(X(j), Y(s.dados[j]), s.destaque ? 6 : 4, 0, 7); c.fill();
-        c.font = `${s.destaque ? 700 : 400} 16px ${FONTE}`; c.textAlign = 'left'; c.textBaseline = 'middle';
-        c.fillText(`${s.rotulo} ${RM.fmtVis(spec.ind, s.dados[j])}`, X(j) + 10, Y(s.dados[j]));   // rótulo direto, sem legenda (§8.2)
+        c.fillStyle = cor; c.beginPath(); c.arc(X(j), Y(s.dados[j]), s.destaque ? 6 : 4, 0, 7); c.fill();
+        rot.push({ x: X(j), y: Y(s.dados[j]), cor, destaque: !!s.destaque, texto: `${s.rotulo} ${RM.fmtVis(spec.ind, s.dados[j])}` });
       }
     });
+    // rótulo direto no fim de cada linha (sem legenda, §8.2), SEM sobreposição: o texto encolhe até caber na margem e
+    // os que ficariam um sobre o outro são afastados na vertical, com um traço curto ligando ao ponto
+    let fs = 16;
+    const livre = W - 14 - (x1 + 18);
+    const larguraMax = () => Math.max.apply(null, rot.map(r => { c.font = `${r.destaque ? 700 : 400} ${fs}px ${FONTE}`; return c.measureText(r.texto).width; }).concat([0]));
+    while (fs > 11 && larguraMax() > livre) fs--;
+    const ys = espalhar(rot.map(r => r.y), Math.round(fs * 1.5), y0 - 4, y1 + 4);
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    rot.forEach((r, k) => {
+      if (Math.abs(ys[k] - r.y) > 2) { c.strokeStyle = r.cor; c.lineWidth = 1.2; c.beginPath(); c.moveTo(r.x + 8, r.y); c.lineTo(r.x + 15, ys[k]); c.stroke(); }
+      c.fillStyle = r.cor; c.font = `${r.destaque ? 700 : 400} ${fs}px ${FONTE}`; c.fillText(r.texto, r.x + 18, ys[k]);
+    });
+    // posição de cada rótulo, para o teste de sobreposição (nenhum rótulo cobre outro nem sai da imagem)
+    m.cv._rotulos = rot.map((r, k) => { c.font = `${r.destaque ? 700 : 400} ${fs}px ${FONTE}`; return { x: r.x + 18, y: ys[k] - fs * 0.6, w: c.measureText(r.texto).width, h: fs * 1.2 }; });
     return m.cv;
   }
   function desenharBarras(spec) {
@@ -165,7 +250,7 @@ const RELEASES = (() => {
     c.fillText('▲ aumentou · ▼ recuou (significativa no teste do IBGE) · ● estável — verde/vermelho: sentido favorável/desfavorável', 30, m.base - 26);
     return m.cv;
   }
-  function desenharGrade(spec) {
+  function desenharGradeAntiga(spec) {
     const W = 1200, H = 1150, m = moldura(spec, W, H), c = m.c;
     const cols = 7, rows = 8, gx = 16, top = m.topo + 6, alt = m.base - 70 - top;
     const lado = Math.min((W - 60 - gx * (cols - 1)) / cols, (alt - gx * (rows - 1)) / rows);
@@ -187,6 +272,59 @@ const RELEASES = (() => {
       c.fillStyle = fundo; c.fillRect(lx, ly, 22, 22); c.fillStyle = '#243b53'; c.fillText(rot, lx + 28, ly + 2); lx += c.measureText(rot).width + 60;
     }
     c.fillStyle = '#486581'; c.fillText('Uma casa igual para cada UF; a posição aproxima a geografia, sem afirmar vizinhança. Casa com borda grossa: a UF em destaque.', 30, ly + 30);
+    return m.cv;
+  }
+  /* O MAPA das 27 UFs com os limites reais (MAPA_UF, malha do IBGE simplificada). Cor = situação publicada da variação;
+     contorno grosso escuro = a UF em destaque; rótulos sem sobreposição (ver layoutMapa). */
+  function desenharGrade(spec) {
+    if (typeof MAPA_UF === 'undefined') return desenharGradeAntiga(spec);
+    const W = 1200, H = 1180, m = moldura(spec, W, H), c = m.c;
+    const area = { x: 30, y: m.topo + 6, w: W - 60, h: m.base - 84 - (m.topo + 6) };
+    const medir = (t, fs, peso) => { c.font = `${peso} ${fs}px ${FONTE}`; return c.measureText(t).width; };
+    const L = layoutMapa(spec, area, medir, v => RM.fmtVis(spec.ind, v).replace('%', ''));
+    const pintar = (k, g) => {
+      const p = new Path2D(g.d), est = k.estado === 'estavel' || k.estado === 'sem';
+      c.save(); c.translate(L.ox, L.oy); c.scale(L.sc, L.sc);
+      c.fillStyle = est ? '#e3e8eb' : corEstado(k.estado, spec.sentido); c.fill(p);
+      c.lineJoin = 'round'; c.lineWidth = 1.7 / L.sc; c.strokeStyle = '#fff'; c.stroke(p);
+      c.restore();
+      return p;
+    };
+    spec.casas.forEach(k => { const g = MAPA_UF.ufs[k.sigla]; if (g && !k.destaque) pintar(k, g); });
+    spec.casas.forEach(k => {   // a UF em destaque por cima, com contorno grosso
+      const g = MAPA_UF.ufs[k.sigla];
+      if (!g || !k.destaque) return;
+      const p = pintar(k, g);
+      c.save(); c.translate(L.ox, L.oy); c.scale(L.sc, L.sc); c.lineJoin = 'round'; c.lineWidth = 5 / L.sc; c.strokeStyle = '#102a43'; c.stroke(p); c.restore();
+    });
+    // traços até as UFs cujo rótulo ficou na coluna da direita
+    L.itens.filter(it => !it.dentro).forEach(it => {
+      c.strokeStyle = 'rgba(16,42,67,.55)'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(it.px, it.py); c.lineTo(L.xCol - 8, it.ly); c.lineTo(L.xCol - 2, it.ly); c.stroke();
+      c.fillStyle = '#102a43'; c.beginPath(); c.arc(it.px, it.py, 3.2, 0, 7); c.fill();
+    });
+    L.itens.forEach(it => {
+      const est = it.k.estado === 'estavel' || it.k.estado === 'sem';
+      c.textBaseline = 'alphabetic';
+      if (it.dentro) {
+        const claro = !est;
+        c.textAlign = 'center'; c.fillStyle = claro ? '#fff' : '#243b53';
+        c.font = `800 ${it.fs}px ${FONTE}`; c.fillText(it.sigla, it.px, it.rect.y + it.fs * 0.98);
+        c.font = `${it.k.destaque ? 800 : 600} ${it.f2}px ${FONTE}`; c.fillText(`${it.val} ${it.sim}`, it.px, it.rect.y + it.fs * 1.12 + it.f2 * 1.0);
+      } else {
+        const r = it.rect;
+        c.fillStyle = est ? '#e3e8eb' : corEstado(it.k.estado, spec.sentido); c.fillRect(r.x, r.y + 5, 16, r.h - 10);
+        if (it.k.destaque) { c.strokeStyle = '#102a43'; c.lineWidth = 2.5; c.strokeRect(r.x, r.y + 5, 16, r.h - 10); }
+        c.textAlign = 'left'; c.fillStyle = '#243b53'; c.font = `${it.k.destaque ? 800 : 700} ${it.fs}px ${FONTE}`;
+        c.fillText(`${it.sigla}  ${it.val} ${it.sim}`, r.x + 22, r.y + r.h / 2 + it.fs * 0.34);
+      }
+    });
+    c.textAlign = 'left'; c.textBaseline = 'top'; c.font = `15px ${FONTE}`;
+    let lx = 30; const ly = m.base - 52;
+    for (const [rot, fundo] of [['▲/▼ significativa, sentido favorável', U.COR.bom], ['▲/▼ significativa, sentido desfavorável', U.COR.ruim], ['● estável (não significativa)', '#e3e8eb'], ['– sem comparação', '#e3e8eb']]) {
+      c.fillStyle = fundo; c.fillRect(lx, ly, 22, 22); c.fillStyle = '#243b53'; c.fillText(rot, lx + 28, ly + 2); lx += c.measureText(rot).width + 60;
+    }
+    c.fillStyle = '#486581'; c.fillText('Limites estaduais do IBGE (malha simplificada: serve para mostrar, não para medir). Contorno grosso: a UF em destaque.', 30, ly + 30);
+    m.cv._rotulos = L.itens.map(it => it.rect);
     return m.cv;
   }
   function desenharHalteres(spec) {
@@ -291,23 +429,37 @@ const RELEASES = (() => {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, reserva); else reserva();
   }
   const nomeBase = F => `release_pnadc_${(F.terr.sigla || F.terr.id || 'br').toLowerCase()}_${F.per}_${ST.E.midia}`;
-  function htmlDocumento(F, doc, txt, imagens, paraImprimir) {
+  function htmlDocumento(F, doc, txt, imagens) {
     const corpo = doc.formato === 'md' ? mdHtml(txt) : planoHtml(txt);
     const figs = imagens.map(im => `<figure><img src="${im.url}" alt="${U.esc(im.alt)}"><figcaption>${U.esc(im.titulo)} — ${U.esc(im.fonte || '')}</figcaption></figure>`).join('\n');
-    return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${U.esc(doc.titulo || 'Release PNAD Contínua')}</title>
+    const marca = (typeof MOLDURA !== 'undefined' && MOLDURA.logo) ? MOLDURA.logo(38).outerHTML : '';
+    return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${U.esc(doc.titulo || 'Release PNAD Contínua')}</title>
 <style>
-@page { size: A4 portrait; margin: 16mm 14mm 18mm; }
-:root { color-scheme: light; } html { background: #fff; } body { font: 11pt/1.5 "Segoe UI", Arial, sans-serif; color: #1f2933; max-width: 760px; margin: 24px auto; padding: 0 16px; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-h1 { font-size: 20pt; line-height: 1.2; color: #102a43; margin: 0 0 6px; } h2 { font-size: 13pt; color: ${COR_INST}; margin: 18px 0 4px; } h3 { font-size: 11.5pt; margin: 16px 0 4px; }
-p { margin: 6px 0; } blockquote { border-left: 4px solid #e08b00; margin: 10px 0; padding: 4px 10px; background: #fff8e1; }
-figure { margin: 14px 0; break-inside: avoid; } figure img { width: 100%; border: 1px solid #d9e2ec; } figcaption { font-size: 8.5pt; color: #486581; }
-table.rel-tab { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 8px 0; } .rel-tab th { background: ${COR_INST}; color: #fff; padding: 4px 6px; text-align: left; } .rel-tab td { border-bottom: 1px solid #e4e7eb; padding: 3px 6px; }
-.barra { background: #f3f6fa; border: 1px solid #d9e2ec; padding: 6px 10px; margin-bottom: 12px; font-size: 10pt; } @media print { .barra { display: none; } }
+:root { color-scheme: light; --verde: #0f5132; --verde2: #1b8a5a; --cinza: #587068; --borda: #dfe9e3; }
+* { box-sizing: border-box; } html { background: #eef5f1; }
+body { margin: 0; font: 11pt/1.6 "Segoe UI", Arial, sans-serif; color: #1f2933; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.topo { background: linear-gradient(120deg, #0b3d2b 0%, #146c43 60%, #1b8a5a 100%); color: #fff; padding: 16px 28px; display: flex; align-items: center; gap: 12px; }
+.topo b { font-size: 14pt; letter-spacing: -.2px; } .topo small { display: block; opacity: .85; font-size: 9pt; }
+.pagina { max-width: 800px; margin: 22px auto 40px; background: #fff; border: 1px solid var(--borda); border-radius: 16px; padding: 26px 34px 30px; box-shadow: 0 10px 30px rgba(16,42,35,.08); }
+h1 { font-size: 21pt; line-height: 1.2; color: var(--verde); margin: 0 0 8px; letter-spacing: -.3px; } h1::after { content: ''; display: block; width: 56px; height: 3px; background: var(--verde2); border-radius: 2px; margin-top: 9px; }
+h2 { font-size: 14pt; color: var(--verde); margin: 22px 0 4px; } h3 { font-size: 12pt; margin: 16px 0 4px; }
+p { margin: 7px 0; text-align: justify; hyphens: auto; } p.fonte { font-size: 8.5pt; color: var(--cinza); text-align: left; margin-top: 10px; }
+ul { margin: 6px 0 6px 20px; padding: 0; text-align: justify; } li { margin: 3px 0; }
+blockquote { border-left: 4px solid #9be7bd; margin: 12px 0; padding: 4px 14px; background: #f5f9f7; color: #35524a; text-align: justify; }
+figure { margin: 18px 0; break-inside: avoid; } figure img { width: 100%; border: 1px solid var(--borda); border-radius: 10px; } figcaption { font-size: 8.5pt; color: var(--cinza); margin-top: 4px; }
+table.rel-tab { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 9.5pt; margin: 12px 0; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; font-variant-numeric: tabular-nums; }
+.rel-tab th { background: var(--verde); color: #fff; padding: 7px 9px; text-align: left; font-weight: 700; } .rel-tab td { padding: 6px 9px; border-bottom: 1px solid #eef3f0; }
+.rel-tab th.n, .rel-tab td.n { text-align: right; } .rel-tab tbody tr:nth-child(even) td { background: #f7faf8; } .rel-tab tbody tr:last-child td { border-bottom: 0; }
+.rodape { margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--borda); font-size: 8.5pt; color: var(--cinza); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+@page { size: A4 portrait; margin: 14mm; }
+@media print { html { background: #fff; } .pagina { border: 0; box-shadow: none; margin: 0; padding: 0; max-width: none; border-radius: 0; } .topo { border-radius: 6px; margin-bottom: 14px; } }
 </style></head><body>
-${paraImprimir ? '<div class="barra"><button onclick="window.print()">Imprimir / Salvar como PDF</button> Na janela de impressão, escolha "Salvar como PDF".</div>' : ''}
+<header class="topo">${marca}<div><b>PNADC Resultados</b><small>Números da PNAD Contínua, do IBGE</small></div></header>
+<main class="pagina">
 ${corpo}
 ${figs}
-</body></html>`;
+<div class="rodape"><span>Fonte: IBGE, PNAD Contínua (SIDRA).</span><span>Gerado em ${new Date().toLocaleDateString('pt-BR')} por ${U.esc(AMBIENTE.produto || 'PNADC Resultados')}</span></div>
+</main></body></html>`;
   }
   function imagensDe(doc) {
     const out = [];
@@ -431,9 +583,7 @@ ${figs}
       marca('barras', 'Barras horizontais (as 27 UFs)', 'Só no trimestral; a UF em destaque, linha tracejada do Brasil, ▲▼● pela situação publicada.'),
       marca('halteres', 'Halteres (dois períodos)', 'As taxas do território, ano anterior × agora; "estável" na mesma cor quando não é significativa.'),
       marca('tabela', 'Tabela', 'Território, região e Brasil, com CV e a situação publicada.'),
-      marca('grade', 'Cartograma em grade (27 UFs)', 'Uma casa igual por UF, sigla e valor; a cor é a situação da variação publicada.'),
-      U.el('label', { style: { display: 'block', margin: '0 0 6px', opacity: 0.55 } }, U.el('input', { type: 'checkbox', disabled: true, style: { marginRight: '6px' } }), 'Coroplético geográfico das UFs',
-        U.el('div', { class: 'mini-info', style: { marginLeft: '22px' } }, 'Indisponível: o sistema só tem a malha de setores da UF, não a de UFs do país, e o pedido é não acrescentar dependência. O cartograma em grade cumpre o papel (e é o que o jornalismo de dados usa por UF).')),
+      marca('grade', 'Mapa das UFs (limites reais)', 'Os limites das 27 UFs, com sigla e valor; a cor é a situação da variação publicada; UF em destaque com contorno grosso.'),
     ];
     if (ST.E.midia === 'instagram') corpo.push(campo('Formato das telas do carrossel', U.seg([{ valor: '1080x1080', rotulo: '1080 × 1080' }, { valor: '1080x1350', rotulo: '1080 × 1350' }], ST.E.formatoImg, v => mudar(E => { E.formatoImg = v; }, true))));
     if (ST.E.midia === 'radio') corpo.push(U.el('div', { class: 'aviso' }, 'Rádio não leva imagem.'));
@@ -447,7 +597,7 @@ ${figs}
       x.portaVoz.incluir ? U.el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' } }, campo('Nome', entrada(x.portaVoz.nome, v => mudar(E => { E.extras.portaVoz.nome = v; }))), campo('Cargo', entrada(x.portaVoz.cargo, v => mudar(E => { E.extras.portaVoz.cargo = v; })))) : null,
       U.el('div', { style: { fontWeight: 700, margin: '10px 0 4px' } }, 'Contato de imprensa'),
       U.el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' } },
-        campo('Setor', entrada(x.contato.setor, v => mudar(E => { E.extras.contato.setor = v; }), { placeholder: 'Comunicação da UE' })),
+        campo('Setor', entrada(x.contato.setor, v => mudar(E => { E.extras.contato.setor = v; }), { placeholder: 'Assessoria de comunicação' })),
         campo('Telefone', entrada(x.contato.telefone, v => mudar(E => { E.extras.contato.telefone = v; }), { type: 'tel' })),
         campo('E-mail', entrada(x.contato.email, v => mudar(E => { E.extras.contato.email = v; }), { type: 'email' }))),
       campo('Cidade do release', entrada(x.cidade, v => mudar(E => { E.extras.cidade = v; }), { placeholder: F.capNome || 'cidade' }), 'Abre o lide ("Porto Velho, 26 de outubro de 2026 –"). Vazio = a capital da UF.'),
@@ -478,7 +628,7 @@ ${figs}
     if (F.avisos.length) box.append(U.el('div', { class: 'aviso' }, U.el('b', {}, 'Avisos: '), U.el('ul', { style: { margin: '2px 0 0 18px', padding: 0 } }, ...F.avisos.map(a => U.el('li', {}, a)))));
     const papel = U.el('div', { style: { background: '#fff', border: '1px solid var(--borda)', borderRadius: '8px', padding: '14px 18px', lineHeight: 1.5, fontSize: '14px', maxHeight: '70vh', overflow: 'auto' } });
     papel.innerHTML = doc.formato === 'md' ? mdHtml(txt) : planoHtml(txt);   // mdHtml/planoHtml escapam todo o texto
-    box.append(U.el('div', { class: 'mini-info', style: { margin: '6px 0 4px' } }, `RASCUNHO gerado pelo ${AMBIENTE.produto || 'programa'} a partir das estimativas publicadas — a publicação é de quem tem a atribuição (CCS / comunicação da UE).`), papel);
+    box.append(U.el('div', { class: 'mini-info', style: { margin: '6px 0 4px' } }, `RASCUNHO gerado pelo ${AMBIENTE.produto || 'programa'} a partir das estimativas publicadas — a publicação é de quem tem a atribuição para divulgar.`), papel);
     if (doc.telas) {
       const g = U.el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '8px', marginTop: '10px' } });
       doc.telas.forEach((t, i) => { const cv = desenharTela(t, i, doc.telas.length, ST.E.formatoImg, F.lide.ind); cv.style.width = '100%'; cv.style.border = '1px solid var(--borda)'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', t.alt); cv.title = t.alt; g.append(cv); });
@@ -531,6 +681,35 @@ ${figs}
     const libera = !F.bloqueios.length && RM.podeExportar(lista);
     U.trocarFilhos(exp, botoesExportar(F, doc, libera));
   }
+  /* texto do release (Markdown leve ou plano) -> blocos para o PDF direto (PDFREL): títulos, parágrafos, tópicos,
+     citações, TABELAS (linhas "| a | b |" em qualquer ponto) e a linha de "Fonte" em corpo menor */
+  function blocosPdf(txt, doc) {
+    const out = [], md = doc.formato === 'md';
+    const limpa = s => String(s).replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+    const cel = l => l.replace(/^\s*\||\|\s*$/g, '').split('|').map(c => limpa(c.trim()));
+    const sep = l => /^[\s|:-]+$/.test(l) && /-/.test(l);
+    let par = [], tab = [];
+    const fecha = () => { if (par.length) { const t = limpa(par.join(md ? ' ' : '\n')); out.push({ t: /^Fontes?:/i.test(t) ? 'fonte' : 'p', texto: t }); par = []; } };
+    const fechaTab = () => { if (tab.length) { out.push({ t: 'tabela', cab: cel(tab[0]), linhas: tab.slice(1).filter(l => !sep(l)).map(cel) }); tab = []; } };
+    String(txt).split('\n').forEach(l => {
+      let m;
+      if (/^\s*\|/.test(l)) { fecha(); tab.push(l); return; }
+      fechaTab();
+      if (!l.trim()) { fecha(); return; }
+      if (md && (m = /^(#{1,3})\s+(.*)$/.exec(l))) { fecha(); out.push({ t: 'h' + m[1].length, texto: limpa(m[2]) }); }
+      else if (md && /^- /.test(l)) { fecha(); out.push({ t: 'li', texto: limpa(l.slice(2)) }); }
+      else if (md && /^>\s?/.test(l)) { fecha(); out.push({ t: 'q', texto: limpa(l.replace(/^>\s?/, '')) }); }
+      else par.push(l.trim());
+    });
+    fechaTab(); fecha();
+    return out;
+  }
+  function baixarPdfRelease(F, doc, txt, base) {
+    const paginas = [{ tipo: 'texto', blocos: blocosPdf(txt, doc) }];
+    for (const v of doc.visuais || []) { try { paginas.push({ tipo: 'imagem', canvas: desenhar(v) }); } catch (e) { console.error(e); } }
+    baixarBlob(PDFREL.criar({ titulo: doc.titulo || 'Release PNAD Contínua', assunto: 'Release da PNAD Contínua (IBGE)', paginas,
+      rodape: `Fonte: IBGE, PNAD Contínua (SIDRA). Gerado em ${new Date().toLocaleDateString('pt-BR')} por ${AMBIENTE.produto || 'PNADC Resultados'}.` }), base + '.pdf');
+  }
   function botoesExportar(F, doc, libera) {
     const txt = textoAtual(doc), plano = textoParaPlano(txt, doc), base = nomeBase(F);
     const b = (rot, fn, titulo) => U.el('button', { class: 'btn pequeno', disabled: !libera, title: libera ? (titulo || '') : 'Resolva os itens marcados com ✖ e marque as conferências manuais', onclick: () => { try { fn(); } catch (e) { console.error(e); AMBIENTE.toast('Não consegui exportar: ' + e.message, 'erro', 6000); } } }, rot);
@@ -538,16 +717,15 @@ ${figs}
       b('Copiar texto', () => copiar(plano)),
       b('Baixar .txt', () => baixarTexto(plano, base + '.txt')),
       b('Baixar .md', () => baixarTexto(doc.formato === 'md' ? txt : plano, base + '.md', 'text/markdown')),
-      b('Baixar HTML', () => baixarTexto(htmlDocumento(F, doc, txt, imagensDe(doc), false), base + '.html', 'text/html')),
-      b('PDF (imprimir)', () => {
-        const w = window.open('', '_blank');
-        if (!w) { AMBIENTE.toast('O navegador bloqueou a nova janela: permita pop-ups para este endereço.', 'erro', 7000); return; }
-        w.document.open(); w.document.write(htmlDocumento(F, doc, txt, imagensDe(doc), true)); w.document.close();
-        setTimeout(() => { try { w.focus(); w.print(); } catch (e) { /* o botão da barra imprime */ } }, 600);
-      }),
+      b('Baixar HTML', () => baixarTexto(htmlDocumento(F, doc, txt, imagensDe(doc)), base + '.html', 'text/html')),
+      typeof PDFREL !== 'undefined' ? b('Baixar PDF', () => baixarPdfRelease(F, doc, txt, base), 'PDF pronto, sem a janela de impressão: texto justificado e selecionável, tabelas e as imagens no fim') : null,
       b('CSV dos números', () => baixarTexto(csvNumeros(F), base + '_numeros.csv', 'text/csv')),
-    ];
-    for (const v of doc.visuais || []) botoes.push(b(`PNG: ${v.tipo === 'grade' ? 'cartograma' : v.tipo}`, () => desenhar(v).toBlob(bl => baixarBlob(bl, `${base}_${v.id}.png`)), v.alt));
+    ].filter(Boolean);
+    for (const v of doc.visuais || []) {
+      const rot = v.tipo === 'grade' ? 'mapa' : v.tipo;
+      botoes.push(b(`PNG: ${rot}`, () => desenhar(v).toBlob(bl => baixarBlob(bl, `${base}_${v.id}.png`)), v.alt));
+      botoes.push(b(`JPG: ${rot}`, () => desenhar(v).toBlob(bl => baixarBlob(bl, `${base}_${v.id}.jpg`), 'image/jpeg', 0.92), v.alt));
+    }
     if (doc.telas) botoes.push(b(`PNG: ${doc.telas.length} telas do carrossel`, () => doc.telas.forEach((t, i) => setTimeout(() => desenharTela(t, i, doc.telas.length, ST.E.formatoImg, F.lide.ind).toBlob(bl => baixarBlob(bl, `${base}_tela${i + 1}.png`)), i * 400))));
     if (doc.visuais && doc.visuais.length || doc.telas) botoes.push(b('Textos alternativos (.txt)', () => baixarTexto((doc.visuais || []).map(v => `${v.titulo}\n${v.alt}`).concat((doc.telas || []).map((t, i) => `Tela ${i + 1}: ${t.alt}`)).join('\n\n'), base + '_texto_alternativo.txt')));
     return U.el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '10px 0 0' } }, ...botoes,
@@ -610,7 +788,7 @@ ${figs}
       const dir = U.cartao(P.id === 'saida' ? 'Prévia do texto final' : 'Prévia ao vivo', [resumoBox, lado]);
       U.trocarFilhos(raiz,
         U.el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: '0 0 8px' } },
-          U.el('div', { class: 'mini-info' }, 'Gerador de releases: texto determinístico a partir das estimativas publicadas pelo IBGE, seguindo o guia de redação (GUIA_JORNALISMO_RELEASES.md). Nunca usa dado da coleta.'),
+          U.el('div', { class: 'mini-info' }, 'Gerador de releases: texto determinístico a partir das estimativas publicadas pelo IBGE, seguindo regras de redação jornalística (número só da fonte, "estável" só quando o IBGE publica, causa só se atribuída). Nunca usa dado da coleta.'),
           rascunhosEl()),
         stepper,
         U.el('div', { class: 'grade rel-grade', style: { gridTemplateColumns: 'minmax(0, 5fr) minmax(0, 6fr)', alignItems: 'start' } }, esq, dir));
@@ -618,7 +796,7 @@ ${figs}
     };
     try { redesenharTudo(); } catch (e) { console.error(e); raiz.append(U.el('div', { class: 'aviso erro' }, 'Não consegui montar o gerador de releases: ' + e.message)); }
   }
-  return { render, pode, _mdHtml: mdHtml, _desenhar: { desenhar, desenharTela },
+  return { render, pode, _mdHtml: mdHtml, _desenhar: { desenhar, desenharTela, layoutMapa, espalhar },
     // bancada (teste_releases.py): o estado e a geração com cache, sem tela
     _teste: { estado: D => estado(D), gerar: D => gerar(D), get ST() { return ST; } } };
 })();

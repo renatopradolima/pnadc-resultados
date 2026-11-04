@@ -1,0 +1,24 @@
+name: anexar-arquivo-na-release
+
+# Ao publicar uma tag (ex.: v0.4.0), constrói o arquivo único e o anexa à Release, para baixar com um clique.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -I scripts/construir.py --saida PNADC_Resultados.html
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: PNADC_Resultados.html
+          generate_release_notes: true

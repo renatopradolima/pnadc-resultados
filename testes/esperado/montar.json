@@ -1,0 +1,1548 @@
+{
+ "montar": {
+  "api": "https://servicodados.ibge.gov.br/api/v3/agregados",
+  "confianca": 95,
+  "consultas": {
+   "*": {
+    "baixado_em": null,
+    "erro": null,
+    "modificacao": null,
+    "n_valores": null,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": null
+   },
+   "6381": {
+    "baixado_em": "2026-10-26 09:00:00",
+    "erro": null,
+    "modificacao": "2026-09-29",
+    "n_valores": 18,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": "202608"
+   },
+   "6468": {
+    "baixado_em": "2026-10-26 09:00:00",
+    "erro": null,
+    "modificacao": "2026-08-14",
+    "n_valores": 90,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": "202602"
+   }
+  },
+  "divulgacao": {
+   "6381": {
+    "202606": "2026-07-30",
+    "202607": "2026-08-27",
+    "202608": "2026-09-29"
+   },
+   "6468": {
+    "202504": "2026-02-20",
+    "202601": "2026-05-14",
+    "202602": "2026-08-14"
+   }
+  },
+  "fonte_legenda": "Símbolos: legenda oficial das tabelas do SIDRA (sidra.ibge.gov.br). Situação da variação: o SIDRA só diz \"A a Z (exceto X): faixa de valores, varia em função da tabela\"; a nota técnica 06/2021 e o Quadro Sintético da PNADC usam Estável / Cresceu / Decresceu por teste de hipóteses. A leitura 'A' = estável e 'Z' = significativa (sentido pelo sinal) foi conferida nos dados em 26/10/2026, nas 16 tabelas: variação 0,0 é sempre 'A', salvo um caso de arredondamento em 30.884; '-' = sem comparação. Nível de confiança: 95%. Precisão pelo CV, escala do IBGE: até 5% ótima, 5-15% boa, 15-30% razoável, 30-50% pouco precisa, acima de 50% imprecisa.",
+  "indicadores": [
+   {
+    "casas": 1,
+    "curto": "desocupação",
+    "definicao": "Pessoas desocupadas (sem trabalho, que tomaram providência para consegui-lo e estavam disponíveis) em % das pessoas na força de trabalho, 14 anos ou mais.",
+    "id": "desocupacao",
+    "movel": {
+     "niveis": [
+      "N1"
+     ],
+     "tabela": "6381",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "8819",
+      "sit_curta": "8814",
+      "valor": "4099",
+      "var_ano": "8816",
+      "var_curta": "8811"
+     }
+    },
+    "rotulo": "Taxa de desocupação",
+    "sentido": -1,
+    "tipo": "taxa",
+    "trimestral": {
+     "niveis": [
+      "N1",
+      "N2",
+      "N3",
+      "N6",
+      "N7"
+     ],
+     "tabela": "6468",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "9131",
+      "sit_curta": "9130",
+      "valor": "4099",
+      "var_ano": "9405",
+      "var_curta": "9402"
+     }
+    },
+    "unidade": "%",
+    "unidade_var": "p.p."
+   }
+  ],
+  "limites": {
+   "espera_erro_min": 15,
+   "intervalo_forcado_min": 30,
+   "intervalo_h": 12
+  },
+  "locais": {
+   "N1|1": "Brasil",
+   "N2|1": "Norte",
+   "N3|11": "Rondônia",
+   "N3|12": "Acre",
+   "N6|1100205": "Porto Velho (RO)"
+  },
+  "ok": true,
+  "precisao_cv": [
+   {
+    "ate": 5,
+    "classe": "ótima"
+   },
+   {
+    "ate": 15,
+    "classe": "boa"
+   },
+   {
+    "ate": 30,
+    "classe": "razoável"
+   },
+   {
+    "ate": 50,
+    "classe": "pouco precisa"
+   },
+   {
+    "ate": null,
+    "classe": "imprecisa"
+   }
+  ],
+  "rede_pausada_ate": null,
+  "regiao": {
+   "codigo": "1",
+   "nome": "Norte"
+  },
+  "series": {
+   "desocupacao": {
+    "movel": {
+     "N1|1": {
+      "cv": [
+       1.4,
+       1.3,
+       1.3
+      ],
+      "esp": [],
+      "per": [
+       "202606",
+       "202607",
+       "202608"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "sc": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.4,
+       5.3,
+       5.3
+      ],
+      "va": [
+       -0.4,
+       -0.3,
+       -0.3
+      ],
+      "vc": [
+       -0.7,
+       -0.5,
+       -0.3
+      ]
+     }
+    },
+    "trimestral": {
+     "N1|1": {
+      "cv": [
+       1.5,
+       1.3,
+       1.4
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "sc": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.1,
+       6.1,
+       5.4
+      ],
+      "va": [
+       -1.1,
+       -0.9,
+       -0.4
+      ],
+      "vc": [
+       -0.5,
+       1.0,
+       -0.7
+      ]
+     },
+     "N2|1": {
+      "cv": [
+       3.8,
+       3.7,
+       3.4
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.8,
+       7.0,
+       6.1
+      ],
+      "va": [
+       -1.1,
+       -1.2,
+       -0.4
+      ],
+      "vc": [
+       -0.4,
+       1.2,
+       -0.9
+      ]
+     },
+     "N3|11": {
+      "cv": [
+       13.2,
+       10.5,
+       10.5
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       2.6,
+       3.7,
+       2.6
+      ],
+      "va": [
+       -0.2,
+       0.6,
+       0.4
+      ],
+      "vc": [
+       0.0,
+       1.1,
+       -1.0
+      ]
+     },
+     "N3|12": {
+      "cv": [
+       7.4,
+       8.0,
+       7.3
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       6.4,
+       8.2,
+       6.6
+      ],
+      "va": [
+       -0.9,
+       0.0,
+       -0.7
+      ],
+      "vc": [
+       -1.1,
+       1.8,
+       -1.6
+      ]
+     },
+     "N6|1100205": {
+      "cv": [
+       17.2,
+       14.8,
+       11.0
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "A",
+       "A"
+      ],
+      "v": [
+       3.8,
+       5.7,
+       4.6
+      ],
+      "va": [
+       0.8,
+       2.0,
+       0.8
+      ],
+      "vc": [
+       1.3,
+       1.9,
+       -1.2
+      ]
+     }
+    }
+   }
+  },
+  "simbolos": {
+   "-": "zero absoluto, não resultante de cálculo ou arredondamento",
+   "..": "valor não se aplica",
+   "...": "valor não disponível",
+   "X": "valor inibido para não identificar o informante"
+  },
+  "situacao": {
+   "A": {
+    "rotulo": "estável",
+    "significativa": false,
+    "texto": "variação não estatisticamente significativa (estável)"
+   },
+   "Z": {
+    "rotulo": "significativa",
+    "significativa": true,
+    "texto": "variação estatisticamente significativa (o sentido é o sinal da variação)"
+   }
+  },
+  "uf": {
+   "codigo": "11",
+   "nome": "Rondônia",
+   "sigla": "RO"
+  }
+ },
+ "montar_ac": {
+  "api": "https://servicodados.ibge.gov.br/api/v3/agregados",
+  "confianca": 95,
+  "consultas": {
+   "*": {
+    "baixado_em": null,
+    "erro": null,
+    "modificacao": null,
+    "n_valores": null,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": null
+   },
+   "6381": {
+    "baixado_em": "2026-10-26 09:00:00",
+    "erro": null,
+    "modificacao": "2026-09-29",
+    "n_valores": 18,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": "202608"
+   },
+   "6468": {
+    "baixado_em": "2026-10-26 09:00:00",
+    "erro": null,
+    "modificacao": "2026-08-14",
+    "n_valores": 90,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": "202602"
+   }
+  },
+  "divulgacao": {
+   "6381": {
+    "202606": "2026-07-30",
+    "202607": "2026-08-27",
+    "202608": "2026-09-29"
+   },
+   "6468": {
+    "202504": "2026-02-20",
+    "202601": "2026-05-14",
+    "202602": "2026-08-14"
+   }
+  },
+  "fonte_legenda": "Símbolos: legenda oficial das tabelas do SIDRA (sidra.ibge.gov.br). Situação da variação: o SIDRA só diz \"A a Z (exceto X): faixa de valores, varia em função da tabela\"; a nota técnica 06/2021 e o Quadro Sintético da PNADC usam Estável / Cresceu / Decresceu por teste de hipóteses. A leitura 'A' = estável e 'Z' = significativa (sentido pelo sinal) foi conferida nos dados em 26/10/2026, nas 16 tabelas: variação 0,0 é sempre 'A', salvo um caso de arredondamento em 30.884; '-' = sem comparação. Nível de confiança: 95%. Precisão pelo CV, escala do IBGE: até 5% ótima, 5-15% boa, 15-30% razoável, 30-50% pouco precisa, acima de 50% imprecisa.",
+  "indicadores": [
+   {
+    "casas": 1,
+    "curto": "desocupação",
+    "definicao": "Pessoas desocupadas (sem trabalho, que tomaram providência para consegui-lo e estavam disponíveis) em % das pessoas na força de trabalho, 14 anos ou mais.",
+    "id": "desocupacao",
+    "movel": {
+     "niveis": [
+      "N1"
+     ],
+     "tabela": "6381",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "8819",
+      "sit_curta": "8814",
+      "valor": "4099",
+      "var_ano": "8816",
+      "var_curta": "8811"
+     }
+    },
+    "rotulo": "Taxa de desocupação",
+    "sentido": -1,
+    "tipo": "taxa",
+    "trimestral": {
+     "niveis": [
+      "N1",
+      "N2",
+      "N3",
+      "N6",
+      "N7"
+     ],
+     "tabela": "6468",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "9131",
+      "sit_curta": "9130",
+      "valor": "4099",
+      "var_ano": "9405",
+      "var_curta": "9402"
+     }
+    },
+    "unidade": "%",
+    "unidade_var": "p.p."
+   }
+  ],
+  "limites": {
+   "espera_erro_min": 15,
+   "intervalo_forcado_min": 30,
+   "intervalo_h": 12
+  },
+  "locais": {
+   "N1|1": "Brasil",
+   "N2|1": "Norte",
+   "N3|11": "Rondônia",
+   "N3|12": "Acre",
+   "N6|1100205": "Porto Velho (RO)"
+  },
+  "ok": true,
+  "precisao_cv": [
+   {
+    "ate": 5,
+    "classe": "ótima"
+   },
+   {
+    "ate": 15,
+    "classe": "boa"
+   },
+   {
+    "ate": 30,
+    "classe": "razoável"
+   },
+   {
+    "ate": 50,
+    "classe": "pouco precisa"
+   },
+   {
+    "ate": null,
+    "classe": "imprecisa"
+   }
+  ],
+  "rede_pausada_ate": null,
+  "regiao": {
+   "codigo": "1",
+   "nome": "Norte"
+  },
+  "series": {
+   "desocupacao": {
+    "movel": {
+     "N1|1": {
+      "cv": [
+       1.4,
+       1.3,
+       1.3
+      ],
+      "esp": [],
+      "per": [
+       "202606",
+       "202607",
+       "202608"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "sc": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.4,
+       5.3,
+       5.3
+      ],
+      "va": [
+       -0.4,
+       -0.3,
+       -0.3
+      ],
+      "vc": [
+       -0.7,
+       -0.5,
+       -0.3
+      ]
+     }
+    },
+    "trimestral": {
+     "N1|1": {
+      "cv": [
+       1.5,
+       1.3,
+       1.4
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "sc": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.1,
+       6.1,
+       5.4
+      ],
+      "va": [
+       -1.1,
+       -0.9,
+       -0.4
+      ],
+      "vc": [
+       -0.5,
+       1.0,
+       -0.7
+      ]
+     },
+     "N2|1": {
+      "cv": [
+       3.8,
+       3.7,
+       3.4
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.8,
+       7.0,
+       6.1
+      ],
+      "va": [
+       -1.1,
+       -1.2,
+       -0.4
+      ],
+      "vc": [
+       -0.4,
+       1.2,
+       -0.9
+      ]
+     },
+     "N3|11": {
+      "cv": [
+       13.2,
+       10.5,
+       10.5
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       2.6,
+       3.7,
+       2.6
+      ],
+      "va": [
+       -0.2,
+       0.6,
+       0.4
+      ],
+      "vc": [
+       0.0,
+       1.1,
+       -1.0
+      ]
+     },
+     "N3|12": {
+      "cv": [
+       7.4,
+       8.0,
+       7.3
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       6.4,
+       8.2,
+       6.6
+      ],
+      "va": [
+       -0.9,
+       0.0,
+       -0.7
+      ],
+      "vc": [
+       -1.1,
+       1.8,
+       -1.6
+      ]
+     },
+     "N6|1100205": {
+      "cv": [
+       17.2,
+       14.8,
+       11.0
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "A",
+       "A"
+      ],
+      "v": [
+       3.8,
+       5.7,
+       4.6
+      ],
+      "va": [
+       0.8,
+       2.0,
+       0.8
+      ],
+      "vc": [
+       1.3,
+       1.9,
+       -1.2
+      ]
+     }
+    }
+   }
+  },
+  "simbolos": {
+   "-": "zero absoluto, não resultante de cálculo ou arredondamento",
+   "..": "valor não se aplica",
+   "...": "valor não disponível",
+   "X": "valor inibido para não identificar o informante"
+  },
+  "situacao": {
+   "A": {
+    "rotulo": "estável",
+    "significativa": false,
+    "texto": "variação não estatisticamente significativa (estável)"
+   },
+   "Z": {
+    "rotulo": "significativa",
+    "significativa": true,
+    "texto": "variação estatisticamente significativa (o sentido é o sinal da variação)"
+   }
+  },
+  "uf": {
+   "codigo": "12",
+   "nome": "Acre",
+   "sigla": "AC"
+  }
+ },
+ "montar_esp": {
+  "api": "https://servicodados.ibge.gov.br/api/v3/agregados",
+  "confianca": 95,
+  "consultas": {
+   "*": {
+    "baixado_em": null,
+    "erro": null,
+    "modificacao": null,
+    "n_valores": null,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": null
+   },
+   "6381": {
+    "baixado_em": "2026-10-26 09:00:00",
+    "erro": null,
+    "modificacao": "2026-09-29",
+    "n_valores": 18,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": "202608"
+   },
+   "6468": {
+    "baixado_em": "2026-10-26 09:00:00",
+    "erro": null,
+    "modificacao": "2026-08-14",
+    "n_valores": 90,
+    "ok": true,
+    "quando": "2026-10-26 09:00:00",
+    "ultimo_ok": "2026-10-26 09:00:00",
+    "ultimo_periodo": "202602"
+   }
+  },
+  "divulgacao": {
+   "6381": {
+    "202606": "2026-07-30",
+    "202607": "2026-08-27",
+    "202608": "2026-09-29"
+   },
+   "6468": {
+    "202504": "2026-02-20",
+    "202601": "2026-05-14",
+    "202602": "2026-08-14"
+   }
+  },
+  "fonte_legenda": "Símbolos: legenda oficial das tabelas do SIDRA (sidra.ibge.gov.br). Situação da variação: o SIDRA só diz \"A a Z (exceto X): faixa de valores, varia em função da tabela\"; a nota técnica 06/2021 e o Quadro Sintético da PNADC usam Estável / Cresceu / Decresceu por teste de hipóteses. A leitura 'A' = estável e 'Z' = significativa (sentido pelo sinal) foi conferida nos dados em 26/10/2026, nas 16 tabelas: variação 0,0 é sempre 'A', salvo um caso de arredondamento em 30.884; '-' = sem comparação. Nível de confiança: 95%. Precisão pelo CV, escala do IBGE: até 5% ótima, 5-15% boa, 15-30% razoável, 30-50% pouco precisa, acima de 50% imprecisa.",
+  "indicadores": [
+   {
+    "casas": 1,
+    "curto": "desocupação",
+    "definicao": "Pessoas desocupadas (sem trabalho, que tomaram providência para consegui-lo e estavam disponíveis) em % das pessoas na força de trabalho, 14 anos ou mais.",
+    "id": "desocupacao",
+    "movel": {
+     "niveis": [
+      "N1"
+     ],
+     "tabela": "6381",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "8819",
+      "sit_curta": "8814",
+      "valor": "4099",
+      "var_ano": "8816",
+      "var_curta": "8811"
+     }
+    },
+    "rotulo": "Taxa de desocupação",
+    "sentido": -1,
+    "tipo": "taxa",
+    "trimestral": {
+     "niveis": [
+      "N1",
+      "N2",
+      "N3",
+      "N6",
+      "N7"
+     ],
+     "tabela": "6468",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "9131",
+      "sit_curta": "9130",
+      "valor": "4099",
+      "var_ano": "9405",
+      "var_curta": "9402"
+     }
+    },
+    "unidade": "%",
+    "unidade_var": "p.p."
+   }
+  ],
+  "limites": {
+   "espera_erro_min": 15,
+   "intervalo_forcado_min": 30,
+   "intervalo_h": 12
+  },
+  "locais": {
+   "N1|1": "Brasil",
+   "N2|1": "Norte",
+   "N3|11": "Rondônia",
+   "N3|12": "Acre",
+   "N6|1100205": "Porto Velho (RO)"
+  },
+  "ok": true,
+  "precisao_cv": [
+   {
+    "ate": 5,
+    "classe": "ótima"
+   },
+   {
+    "ate": 15,
+    "classe": "boa"
+   },
+   {
+    "ate": 30,
+    "classe": "razoável"
+   },
+   {
+    "ate": 50,
+    "classe": "pouco precisa"
+   },
+   {
+    "ate": null,
+    "classe": "imprecisa"
+   }
+  ],
+  "rede_pausada_ate": null,
+  "regiao": {
+   "codigo": "1",
+   "nome": "Norte"
+  },
+  "series": {
+   "desocupacao": {
+    "movel": {
+     "N1|1": {
+      "cv": [
+       1.4,
+       1.3,
+       1.3
+      ],
+      "esp": [],
+      "per": [
+       "202606",
+       "202607",
+       "202608"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "sc": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.4,
+       5.3,
+       5.3
+      ],
+      "va": [
+       -0.4,
+       -0.3,
+       -0.3
+      ],
+      "vc": [
+       -0.7,
+       -0.5,
+       -0.3
+      ]
+     }
+    },
+    "trimestral": {
+     "N1|1": {
+      "cv": [
+       1.5,
+       1.3,
+       1.4
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "sc": [
+       "Z",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.1,
+       6.1,
+       5.4
+      ],
+      "va": [
+       -1.1,
+       -0.9,
+       -0.4
+      ],
+      "vc": [
+       -0.5,
+       1.0,
+       -0.7
+      ]
+     },
+     "N2|1": {
+      "cv": [
+       3.8,
+       3.7,
+       3.4
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "Z",
+       "Z",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       5.8,
+       7.0,
+       6.1
+      ],
+      "va": [
+       -1.1,
+       -1.2,
+       -0.4
+      ],
+      "vc": [
+       -0.4,
+       1.2,
+       -0.9
+      ]
+     },
+     "N3|11": {
+      "cv": [
+       13.2,
+       10.5,
+       10.5
+      ],
+      "esp": [],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       2.6,
+       3.7,
+       2.6
+      ],
+      "va": [
+       -0.2,
+       0.6,
+       0.4
+      ],
+      "vc": [
+       0.0,
+       1.1,
+       -1.0
+      ]
+     },
+     "N3|12": {
+      "cv": [
+       null,
+       8.0,
+       7.3
+      ],
+      "esp": [
+       [
+        "cv",
+        0,
+        "abc",
+        "valor não numérico ('abc')"
+       ],
+       [
+        "sc",
+        0,
+        "Q",
+        "situação não reconhecida (código 'Q')"
+       ],
+       [
+        "v",
+        1,
+        "X",
+        "valor inibido para não identificar o informante"
+       ]
+      ],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "Q",
+       "Z",
+       "Z"
+      ],
+      "v": [
+       6.4,
+       null,
+       6.6
+      ],
+      "va": [
+       -0.9,
+       0.0,
+       -0.7
+      ],
+      "vc": [
+       -1.1,
+       1.8,
+       -1.6
+      ]
+     },
+     "N6|1100205": {
+      "cv": [
+       17.2,
+       14.8,
+       11.0
+      ],
+      "esp": [
+       [
+        "vc",
+        1,
+        "-",
+        "zero absoluto, não resultante de cálculo ou arredondamento -- numa variação ou CV, lido como \"não calculado\""
+       ]
+      ],
+      "per": [
+       "202504",
+       "202601",
+       "202602"
+      ],
+      "sa": [
+       "A",
+       "A",
+       "A"
+      ],
+      "sc": [
+       "A",
+       "A",
+       "A"
+      ],
+      "v": [
+       3.8,
+       5.7,
+       4.6
+      ],
+      "va": [
+       0.8,
+       2.0,
+       0.8
+      ],
+      "vc": [
+       1.3,
+       null,
+       -1.2
+      ]
+     }
+    }
+   }
+  },
+  "simbolos": {
+   "-": "zero absoluto, não resultante de cálculo ou arredondamento",
+   "..": "valor não se aplica",
+   "...": "valor não disponível",
+   "X": "valor inibido para não identificar o informante"
+  },
+  "situacao": {
+   "A": {
+    "rotulo": "estável",
+    "significativa": false,
+    "texto": "variação não estatisticamente significativa (estável)"
+   },
+   "Z": {
+    "rotulo": "significativa",
+    "significativa": true,
+    "texto": "variação estatisticamente significativa (o sentido é o sinal da variação)"
+   }
+  },
+  "uf": {
+   "codigo": "11",
+   "nome": "Rondônia",
+   "sigla": "RO"
+  }
+ },
+ "novidades": {
+  "indicadores": [
+   {
+    "casas": 1,
+    "curto": "desocupação",
+    "id": "desocupacao",
+    "movel": {
+     "brasil": {
+      "cv": 1.3,
+      "sa": "Z",
+      "sc": "Z",
+      "v": 5.3,
+      "va": -0.3,
+      "vc": -0.3
+     },
+     "divulgacao": "2026-09-29",
+     "modificacao": "2026-09-29",
+     "periodo": "202608",
+     "tabela": "6381"
+    },
+    "rotulo": "Taxa de desocupação",
+    "sentido": -1,
+    "tipo": "taxa",
+    "trimestral": {
+     "brasil": {
+      "cv": 1.4,
+      "sa": "Z",
+      "sc": "Z",
+      "v": 5.4,
+      "va": -0.4,
+      "vc": -0.7
+     },
+     "divulgacao": "2026-08-14",
+     "modificacao": "2026-08-14",
+     "periodo": "202602",
+     "regiao": {
+      "cv": 3.4,
+      "sa": "A",
+      "sc": "Z",
+      "v": 6.1,
+      "va": -0.4,
+      "vc": -0.9
+     },
+     "tabela": "6468",
+     "uf": {
+      "cv": 10.5,
+      "sa": "A",
+      "sc": "Z",
+      "v": 2.6,
+      "va": 0.4,
+      "vc": -1.0
+     }
+    },
+    "unidade": "%",
+    "unidade_var": "p.p."
+   }
+  ],
+  "ok": true,
+  "precisao_cv": [
+   {
+    "ate": 5,
+    "classe": "ótima"
+   },
+   {
+    "ate": 15,
+    "classe": "boa"
+   },
+   {
+    "ate": 30,
+    "classe": "razoável"
+   },
+   {
+    "ate": 50,
+    "classe": "pouco precisa"
+   },
+   {
+    "ate": null,
+    "classe": "imprecisa"
+   }
+  ],
+  "regiao": {
+   "codigo": "1",
+   "nome": "Norte"
+  },
+  "uf": {
+   "codigo": "11",
+   "nome": "Rondônia",
+   "sigla": "RO"
+  }
+ },
+ "novidades_esp": {
+  "indicadores": [
+   {
+    "casas": 1,
+    "curto": "desocupação",
+    "id": "desocupacao",
+    "movel": {
+     "brasil": {
+      "cv": 1.3,
+      "sa": "Z",
+      "sc": "Z",
+      "v": 5.3,
+      "va": -0.3,
+      "vc": -0.3
+     },
+     "divulgacao": "2026-09-29",
+     "modificacao": "2026-09-29",
+     "periodo": "202608",
+     "tabela": "6381"
+    },
+    "rotulo": "Taxa de desocupação",
+    "sentido": -1,
+    "tipo": "taxa",
+    "trimestral": {
+     "brasil": {
+      "cv": 1.4,
+      "sa": "Z",
+      "sc": "Z",
+      "v": 5.4,
+      "va": -0.4,
+      "vc": -0.7
+     },
+     "divulgacao": "2026-08-14",
+     "modificacao": "2026-08-14",
+     "periodo": "202602",
+     "regiao": {
+      "cv": 3.4,
+      "sa": "A",
+      "sc": "Z",
+      "v": 6.1,
+      "va": -0.4,
+      "vc": -0.9
+     },
+     "tabela": "6468",
+     "uf": {
+      "cv": 10.5,
+      "sa": "A",
+      "sc": "Z",
+      "v": 2.6,
+      "va": 0.4,
+      "vc": -1.0
+     }
+    },
+    "unidade": "%",
+    "unidade_var": "p.p."
+   }
+  ],
+  "ok": true,
+  "precisao_cv": [
+   {
+    "ate": 5,
+    "classe": "ótima"
+   },
+   {
+    "ate": 15,
+    "classe": "boa"
+   },
+   {
+    "ate": 30,
+    "classe": "razoável"
+   },
+   {
+    "ate": 50,
+    "classe": "pouco precisa"
+   },
+   {
+    "ate": null,
+    "classe": "imprecisa"
+   }
+  ],
+  "regiao": {
+   "codigo": "1",
+   "nome": "Norte"
+  },
+  "uf": {
+   "codigo": "11",
+   "nome": "Rondônia",
+   "sigla": "RO"
+  }
+ },
+ "novidades_vazio": {
+  "indicadores": [
+   {
+    "casas": 1,
+    "curto": "desocupação",
+    "id": "desocupacao",
+    "rotulo": "Taxa de desocupação",
+    "sentido": -1,
+    "tipo": "taxa",
+    "unidade": "%",
+    "unidade_var": "p.p."
+   }
+  ],
+  "ok": true,
+  "precisao_cv": [
+   {
+    "ate": 5,
+    "classe": "ótima"
+   },
+   {
+    "ate": 15,
+    "classe": "boa"
+   },
+   {
+    "ate": 30,
+    "classe": "razoável"
+   },
+   {
+    "ate": 50,
+    "classe": "pouco precisa"
+   },
+   {
+    "ate": null,
+    "classe": "imprecisa"
+   }
+  ],
+  "regiao": {
+   "codigo": "1",
+   "nome": ""
+  },
+  "uf": {
+   "codigo": "11",
+   "nome": "Rondônia",
+   "sigla": "RO"
+  }
+ },
+ "vazio": {
+  "api": "https://servicodados.ibge.gov.br/api/v3/agregados",
+  "confianca": 95,
+  "consultas": {},
+  "divulgacao": {},
+  "fonte_legenda": "Símbolos: legenda oficial das tabelas do SIDRA (sidra.ibge.gov.br). Situação da variação: o SIDRA só diz \"A a Z (exceto X): faixa de valores, varia em função da tabela\"; a nota técnica 06/2021 e o Quadro Sintético da PNADC usam Estável / Cresceu / Decresceu por teste de hipóteses. A leitura 'A' = estável e 'Z' = significativa (sentido pelo sinal) foi conferida nos dados em 26/10/2026, nas 16 tabelas: variação 0,0 é sempre 'A', salvo um caso de arredondamento em 30.884; '-' = sem comparação. Nível de confiança: 95%. Precisão pelo CV, escala do IBGE: até 5% ótima, 5-15% boa, 15-30% razoável, 30-50% pouco precisa, acima de 50% imprecisa.",
+  "indicadores": [
+   {
+    "casas": 1,
+    "curto": "desocupação",
+    "definicao": "Pessoas desocupadas (sem trabalho, que tomaram providência para consegui-lo e estavam disponíveis) em % das pessoas na força de trabalho, 14 anos ou mais.",
+    "id": "desocupacao",
+    "movel": {
+     "niveis": [
+      "N1"
+     ],
+     "tabela": "6381",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "8819",
+      "sit_curta": "8814",
+      "valor": "4099",
+      "var_ano": "8816",
+      "var_curta": "8811"
+     }
+    },
+    "rotulo": "Taxa de desocupação",
+    "sentido": -1,
+    "tipo": "taxa",
+    "trimestral": {
+     "niveis": [
+      "N1",
+      "N2",
+      "N3",
+      "N6",
+      "N7"
+     ],
+     "tabela": "6468",
+     "variaveis": {
+      "cv": "4103",
+      "sit_ano": "9131",
+      "sit_curta": "9130",
+      "valor": "4099",
+      "var_ano": "9405",
+      "var_curta": "9402"
+     }
+    },
+    "unidade": "%",
+    "unidade_var": "p.p."
+   }
+  ],
+  "limites": {
+   "espera_erro_min": 15,
+   "intervalo_forcado_min": 30,
+   "intervalo_h": 12
+  },
+  "locais": {},
+  "ok": true,
+  "precisao_cv": [
+   {
+    "ate": 5,
+    "classe": "ótima"
+   },
+   {
+    "ate": 15,
+    "classe": "boa"
+   },
+   {
+    "ate": 30,
+    "classe": "razoável"
+   },
+   {
+    "ate": 50,
+    "classe": "pouco precisa"
+   },
+   {
+    "ate": null,
+    "classe": "imprecisa"
+   }
+  ],
+  "rede_pausada_ate": null,
+  "regiao": {
+   "codigo": "1",
+   "nome": ""
+  },
+  "series": {
+   "desocupacao": {
+    "movel": {},
+    "trimestral": {}
+   }
+  },
+  "simbolos": {
+   "-": "zero absoluto, não resultante de cálculo ou arredondamento",
+   "..": "valor não se aplica",
+   "...": "valor não disponível",
+   "X": "valor inibido para não identificar o informante"
+  },
+  "situacao": {
+   "A": {
+    "rotulo": "estável",
+    "significativa": false,
+    "texto": "variação não estatisticamente significativa (estável)"
+   },
+   "Z": {
+    "rotulo": "significativa",
+    "significativa": true,
+    "texto": "variação estatisticamente significativa (o sentido é o sinal da variação)"
+   }
+  },
+  "uf": {
+   "codigo": "11",
+   "nome": "Rondônia",
+   "sigla": "RO"
+  }
+ }
+}

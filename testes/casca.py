@@ -101,9 +101,10 @@ JS_ROTEIRO = r"""
   const ce = console.error; console.error = function () { erros.push('console.error: ' + Array.prototype.join.call(arguments, ' ')); ce.apply(console, arguments); };
   const txt = () => document.getElementById('conteudo').innerText;
   const espera = ms => new Promise(r => setTimeout(r, ms));
-  const prog = nome => { document.title += ' | ' + nome; };
+  const prog = nome => { document.title += ' | ' + nome; console.log('PROG ' + nome); };
   const marca = (nome, extra) => { prog(nome); R.passos[nome] = Object.assign({ texto: txt().length, hash: location.hash }, extra || {}); };
   espera(1000).then(() => {
+    R.menu_inicio_estendido = !document.body.classList.contains('menu-recolhido');
     marca('abertura', { tabelas: FONTE._armazem() ? 1 : 0 });
     return espera(14000);                                  // a passada das 16 tabelas + o redesenho de 5 em 5 s
   }).then(() => { prog('apos espera'); return FONTE._armazem().estado(); }).then(est => {
@@ -114,16 +115,158 @@ JS_ROTEIRO = r"""
     R.diag = { emCurso: SIDRA.emCurso(), atualizando: !!(PUBLICACOES.dados() && PUBLICACOES.dados().atualizando), temD: !!PUBLICACOES.dados(), hash: location.hash, agora: Date.now() };
     R.chamadas = window.__IBGE_CHAMADAS.length;
     R.resultados = txt();
-    R.n_cartoes = document.querySelectorAll('#conteudo .cartao').length;
+    R.n_cartoes = document.querySelectorAll('#conteudo .mo-cartao').length;
     R.n_canvas = document.querySelectorAll('#conteudo canvas').length;
     R.n_erros_tela = document.querySelectorAll('#conteudo .aviso.erro').length;
     R.tem_uf_ro = /Rondônia/.test(txt());
-    R.faixa = (document.querySelector('#conteudo .mini-info') || { innerText: '' }).innerText;
+    R.faixa = (document.getElementById('nav-status') || { innerText: '' }).innerText;
+    R.menu_recolheu = document.body.classList.contains('menu-recolhido');
     R.menu = Array.from(document.querySelectorAll('#nav a[data-pagina]')).map(a => a.textContent.trim() + (a.classList.contains('ativo') ? '*' : ''));
     marca('resultados');
     // as outras seções
     const seccoes = {};
-    const ir = (h) => { prog(h); location.hash = h; return espera(600); };
+    // texto estranho na tela ("null", "undefined", "NaN", "[object ...]") em QUALQUER página visitada
+    const suspeito = h => {
+      const t = txt(), m = /(^|[\s(\[:,])(null|undefined|NaN)([\s)\],.:;]|$)|\[object [A-Za-z]+\]/.exec(t);
+      const j = /\bCCS\b|comunicação da UE|\bSIGC\b|IBGE interno/.exec(t);
+      if (j) (R.suspeitos = R.suspeitos || []).push(h + ' -> jargão: ' + j[0]);
+      if (m) (R.suspeitos = R.suspeitos || []).push(h + ' -> ...' + t.slice(Math.max(0, m.index - 40), m.index + 50).replace(/\s+/g, ' ') + '...');
+    };
+    const ir = (h) => { prog(h); location.hash = h; return espera(600).then(() => { suspeito(h); }); };
+
+    async function visual() {
+      const V = {};
+      R.visual = V;
+      for (let p = 1; p <= 10; p++) await ir('#/publicacoes?sec=release&passo=' + p);
+      for (const sec of ['brasil', 'regioes', 'uf', 'capitais', 'comparar']) await ir('#/publicacoes?sec=' + sec);
+      // ---- a tela da UF: cabeçalho, seções, cartões, minigráficos
+      await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(300);
+      V.hero = !!document.querySelector('.topo .cab-acoes button') && !document.querySelector('.mo-hero');
+      V.subtitulo = (document.getElementById('cab-pagina') || { textContent: '' }).textContent;
+      V.hero_botoes = Array.from(document.querySelectorAll('.cab-acoes button')).map(b => b.textContent.trim());
+      V.secoes = Array.from(document.querySelectorAll('.mo-secao')).map(a => a.textContent.trim());
+      V.kpis = document.querySelectorAll('#conteudo .kpi').length;
+      V.sparks = document.querySelectorAll('#conteudo .mo-spark').length;
+      V.cartoes = document.querySelectorAll('#conteudo .mo-cartao').length;
+      V.btn_cheia = document.querySelectorAll('#conteudo .mo-btn[title^="Abrir em tela cheia"]').length;
+      V.btn_jpg = document.querySelectorAll('#conteudo .mo-btn[title^="Baixar como imagem"]').length;
+      // ---- alternar entre modos (nível x variação)
+      const cart = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(c => c.querySelector('canvas') && c.querySelector('.mo-seg'));
+      const dados = c => JSON.stringify(Chart.getChart(c.querySelector('canvas')).data.datasets[0].data.slice(-4));
+      const antes = dados(cart), bs = cart.querySelectorAll('.mo-seg button');
+      bs[1].click(); await espera(200);
+      const depois = dados(cart);
+      bs[0].click(); await espera(200);
+      V.modo = { diferente: antes !== depois, voltou: dados(cart) === antes, rotulos: Array.from(bs).map(b => b.textContent) };
+      // ---- tela cheia e Esc
+      cart.querySelector('.mo-btn[title^="Abrir em tela cheia"]').click(); await espera(400);
+      const tela = document.querySelector('.mo-tela'), cvT = tela && tela.querySelector('canvas');
+      V.cheia = { aberta: !!tela, canvas: !!cvT, altura: cvT ? Math.round(cvT.getBoundingClientRect().height) : 0, seg: tela ? tela.querySelectorAll('.mo-seg').length : 0 };
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await espera(200);
+      V.cheia.fechou = !document.querySelector('.mo-tela');
+      // ---- JPG de um gráfico e de uma tabela
+      const blobs = [], orig = URL.createObjectURL;
+      URL.createObjectURL = b => { blobs.push(b); return orig.call(URL, b); };
+      cart.querySelector('.mo-btn[title^="Baixar como imagem"]').click(); await espera(2500);
+      const tab = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(c => c.querySelector('table.tabela'));
+      tab.querySelector('.mo-btn[title^="Baixar como imagem"]').click(); await espera(2500);
+      URL.createObjectURL = orig;
+      V.jpg = blobs.map(b => ({ tipo: b.type, bytes: b.size }));
+      // ---- ranking: alternância quantidade/percentual só onde faz sentido
+      await ir('#/publicacoes?sec=uf&ind=ocupados'); await espera(300);
+      const rk = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(c => /Ranking das UFs/.test(c.innerText) && c.querySelector('canvas'));
+      V.ranking = { modos: rk ? Array.from(rk.querySelectorAll('.mo-seg button')).map(b => b.textContent) : [] };
+      if (rk) { const g = () => JSON.stringify(Chart.getChart(rk.querySelector('canvas')).data.datasets[0].data.slice(0, 3)); const a0 = g(); rk.querySelectorAll('.mo-seg button')[1].click(); await espera(250); V.ranking.mudou = a0 !== g(); rk.querySelectorAll('.mo-seg button')[0].click(); await espera(150); }
+      // ---- capital e região metropolitana
+      await ir('#/publicacoes?sec=capitais'); await espera(300);
+      V.capitais = { cartoes: document.querySelectorAll('#conteudo .mo-cartao').length, canvases: document.querySelectorAll('#conteudo canvas').length, kpis: document.querySelectorAll('#conteudo .kpi').length,
+        tem: /capital/i.test(txt()), linhas: document.querySelectorAll('#conteudo table.tabela tbody tr').length };
+      // ---- comparar dois períodos
+      await ir('#/publicacoes?sec=comparar'); await espera(300);
+      const sels = document.querySelectorAll('.mo-comp select');
+      V.comparar = { selects: sels.length, linhas: document.querySelectorAll('#conteudo table.tabela tbody tr').length, canvases: document.querySelectorAll('#conteudo canvas').length };
+      if (sels.length === 3) { sels[1].selectedIndex = 3; sels[1].dispatchEvent(new Event('change')); await espera(500); }
+      V.comparar.hash = location.hash; V.comparar.apos = document.querySelectorAll('#conteudo table.tabela tbody tr').length;
+      V.comparar.leitura = /sem teste publicado|situação publicada/.test(txt());
+      const segC = document.querySelector('#conteudo .mo-seg');
+      if (segC) { segC.querySelectorAll('button')[1].click(); await espera(250); V.comparar.abs = !!document.querySelector('#conteudo canvas'); }
+
+      // ---- pré-visualização do release: tabela de verdade (não "| a | b |"), "Fonte" menor, sem jargão
+      await ir('#/publicacoes?sec=release&passo=10'); await espera(300);
+      const NL = String.fromCharCode(10);
+      const md = RELEASES._mdHtml(['## Título', '| A | B |', '|---|---|', '| 1 | 2 |', '', 'Fonte: IBGE.'].join(NL));
+      V.release_tabela = { tabelas: (md.match(/<table class="rel-tab">/g) || []).length, fonte_md: /<p class="fonte">Fonte: IBGE\.<\/p>/.test(md), cru: /\|\s*Indicador\s*\|/.test(txt()) || /\|---/.test(txt()),
+        fonte: !!document.querySelector('#conteudo p.fonte'), revisao: /quem publica confirmou que tem a atribuição para divulgar/.test(txt()) };
+      // ---- PDF com cabeçalho, rodapé, texto justificado e tabela
+      const blocos = [{ t: 'h1', texto: 'Indicadores de Rondônia, 2º tri/2026' }, { t: 'p', texto: 'Texto justificado '.repeat(80) },
+        { t: 'tabela', cab: ['Indicador', 'Rondônia', 'CV', 'Situação'], linhas: [['Taxa de desocupação', '2,6%', '10,5%', 'estável'], ['Taxa de informalidade', '42,0%', '3,0%', 'diminuiu'], ['Rendimento médio real habitual', 'R$ 3.799', '5,6%', 'estável']] },
+        { t: 'fonte', texto: 'Fonte: IBGE, PNAD Contínua trimestral.' }];
+      const pdf = PDFREL.criar({ titulo: 'Teste de PDF', rodape: 'Fonte: IBGE', paginas: [{ tipo: 'texto', blocos }] });
+      const pt = new TextDecoder('latin1').decode(new Uint8Array(await pdf.arrayBuffer()));
+      V.pdf_texto = { pagina: /P\u00e1gina 1 de 1/.test(pt), tw: /[1-9]\d*(\.\d+)? Tw/.test(pt), faixa: /PNADC Resultados/.test(pt), tabela_cab: /\(Indicador\)/.test(pt) && /\(R\$ 3\.799\)/.test(pt), logo: /\/Lg \d+ 0 R/.test(pt), sem_about: !/about:blank/.test(pt) };
+      // ---- slider de período
+      await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(300);
+      const cs = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(c => c.querySelector('.mo-faixa'));
+      const nPts = c => Chart.getChart(c.querySelector('canvas')).data.labels.length;
+      const total = nPts(cs), ins = cs.querySelectorAll('.mo-faixa-trilho input');
+      ins[0].value = 20; ins[0].dispatchEvent(new Event('input')); await espera(250);
+      V.slider = { total, reduzido: nPts(cs), sub: cs.querySelector('.mo-tit small').textContent };
+      cs.querySelector('.mo-faixa-topo button').click(); await espera(250);
+      V.slider.volta = nPts(cs) === total;
+      // ---- publicação passada: as séries são cortadas naquele trimestre
+      const sp = document.getElementById('seletor-publicacao');
+      const alvo = sp.options.length > 3 ? sp.options[3].value : '';
+      sp.value = alvo; sp.dispatchEvent(new Event('change')); await espera(900);
+      const cs2 = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(c => c.querySelector('.mo-faixa'));
+      const labs = Chart.getChart(cs2.querySelector('canvas')).data.labels;
+      V.publicacao = { alvo, opcoes: sp.options.length, ultimo: labs[labs.length - 1], esperado: `${+alvo.slice(4)}T${alvo.slice(2, 4)}`, selo: Array.from(document.querySelectorAll('.mo-selo')).map(x => x.textContent).join('|') };
+      sp.value = ''; sp.dispatchEvent(new Event('change')); await espera(900);
+      // ---- UF "Nenhuma": Brasil + ranking sem destaque; capitais de todas; comparar; apresentação
+      const su = document.getElementById('seletor-uf');
+      su.value = ''; su.dispatchEvent(new Event('change')); await espera(3500);
+      V.semUf = { aviso: /Escolha uma UF em "UF em destaque"/.test(txt()), sem_termo: !/Nenhuma/.test(txt() + document.querySelector('.topo .marca').innerText + ' ' + document.getElementById('cab-acoes').innerText), selo: Array.from(document.querySelectorAll('.mo-selo')).map(x => x.textContent).join('|'), cartoes: document.querySelectorAll('#conteudo .mo-cartao').length, canvas: document.querySelectorAll('#conteudo canvas').length };
+      for (const sec of ['regioes', 'capitais', 'comparar', 'brasil']) { await ir('#/publicacoes?sec=' + sec); await espera(300); V.semUf[sec] = { cartoes: document.querySelectorAll('#conteudo .mo-cartao').length, erro: document.querySelectorAll('#conteudo .aviso.erro').length }; }
+      V.semUf.slides = APRESENTACAO.slidesDe(PUBLICACOES.dados()).length;
+      su.value = '11'; su.dispatchEvent(new Event('change')); await espera(3500);
+      // ---- barra lateral: status embaixo, dica ao passar o mouse
+      const lk = document.querySelector('#nav a[data-pagina="comparar"]');
+      lk.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); await espera(100);
+      const tip = document.getElementById('tip-nav');
+      V.barra = { status: /Última conferência com o IBGE/.test((document.getElementById('nav-status') || { innerText: '' }).innerText), dica: !!tip && tip.style.display === 'block' && /Comparar períodos/.test(tip.textContent), aria: lk.getAttribute('aria-label') };
+      lk.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+      // ---- NENHUM rótulo sobre outro nem fora da imagem: todos os mapas e gráficos de linha dos slides
+      await ir('#/publicacoes?sec=uf'); await espera(300);
+      const D = PUBLICACOES.dados(), sl = APRESENTACAO.slidesDe(D), sobrep = [];
+      let vistos = 0;
+      sl.forEach((s, i) => {
+        const cv = APRESENTACAO.canvasDe(s);
+        if (!cv._rotulos) return;
+        vistos++;
+        const r = cv._rotulos;
+        r.forEach((a, x) => {
+          if (a.x < 0 || a.y < 0 || a.x + a.w > cv.width || a.y + a.h > cv.height) sobrep.push(`${i}: rótulo ${x} fora da imagem`);
+          for (let y = x + 1; y < r.length; y++) { const b = r[y]; if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) sobrep.push(`${i}: rótulos ${x} e ${y} se sobrepõem`); }
+        });
+      });
+      V.slides = sl.length;
+      V.rotulos = { imagens: vistos, sobreposicoes: sobrep };
+      const ys = RELEASES._desenhar.espalhar([100, 101, 102, 103, 300, 301, 560], 24, 90, 580);
+      V.espalhar = { ys, folga: Math.min.apply(null, ys.slice(1).map((y, i) => y - ys[i])) };
+      // ---- apresentação (botão do cabeçalho), teclado e PDF
+      const bApr = Array.from(document.querySelectorAll('.cab-acoes button')).find(b => /Apresentar/.test(b.textContent));
+      if (bApr) { bApr.click(); await espera(800); }
+      V.apresentacao = { aberta: !!document.querySelector('.ap-tela'), pontos: document.querySelectorAll('.ap-ponto').length };
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await espera(200);
+      V.apresentacao.cont = (document.querySelector('.ap-cont') || { textContent: '' }).textContent;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await espera(200);
+      V.apresentacao.fechou = !document.querySelector('.ap-tela');
+      const pdfs = [], o2 = URL.createObjectURL;
+      URL.createObjectURL = b => { pdfs.push(b); return o2.call(URL, b); };
+      APRESENTACAO.baixarPdf(D, null); await espera(5000); URL.createObjectURL = o2;
+      const pb = pdfs.find(b => b.type === 'application/pdf');
+      if (pb) { const t = new TextDecoder('latin1').decode(new Uint8Array(await pb.arrayBuffer())); V.pdf = { bytes: pb.size, cabeca: t.slice(0, 5), paginas: (t.match(/\/Type \/Page /g) || []).length, eof: /%%EOF\s*$/.test(t) }; }
+      else V.pdf = null;
+    }
     return ir('#/publicacoes?sec=brasil').then(() => { seccoes.brasil = txt().length; return ir('#/publicacoes?sec=regioes'); })
       .then(() => { seccoes.regioes = txt().length; seccoes.regioes_norte = /Norte/.test(txt()); return ir('#/publicacoes?sec=uf&ind=informalidade'); })
       .then(() => { seccoes.informalidade = /nformalidade/.test(txt()); R.seccoes = seccoes; return ir('#/publicacoes?sec=release&passo=1'); })
@@ -132,9 +275,11 @@ JS_ROTEIRO = r"""
         return ir('#/publicacoes?sec=release&passo=10');
       }).then(() => {
         R.release10 = { raiz: !!document.querySelector('.rel-raiz'), texto: txt().slice(0, 400), botoes: Array.from(document.querySelectorAll('#conteudo button')).map(b => b.textContent.trim()).filter(Boolean).slice(0, 30) };
-        return ir('#/sobre');
+        return visual().then(() => ir('#/sobre'));
       }).then(() => {
         R.sobre = txt();
+        R.contato = !!document.querySelector('#conteudo a[href^="mailto:renatoprado.lima@gmail.com"]');
+        R.contato_rodape = !!document.querySelector('#nav-rodape a[href^="mailto:renatoprado.lima@gmail.com"]');
         return ir('#/publicacoes?sec=uf');
       }).then(() => {
         // troca de UF: capitais da UF nova são baixadas na passada seguinte
@@ -163,7 +308,7 @@ def teste_entregue(ctx):
     """Fase 4: o MESMO roteiro, sobre o arquivo que o SuperC entrega no botão (SuperC/app/PNADC_Resultados.html)."""
     import json as _json
     ori = _json.load(open(ctx.ORIGEM, encoding='utf-8'))
-    arq = os.path.join(ori['superc'], *ori['distribuicao']['arquivo_superc'].split('/'))
+    arq = os.path.join(ctx.SUPERC, *ori['distribuicao']['arquivo_superc'].split('/'))
     if not os.path.exists(arq):
         print(u'AVISO  arquivo entregue ausente (%s): rode scripts/sincronizar.py --empurrar' % arq)
         return None
@@ -180,7 +325,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
         import construir
         sys.path.pop(0)
         html = construir.construir(antes_de_iniciar=GANCHO)
-    dom = ctx.rodar_no_edge(html, timeout=300, virtual_ms=60000)
+    dom = ctx.rodar_no_edge(html, timeout=300, virtual_ms=400000)
     if dom is None:
         ctx.confere(False, rotulo + ': nenhum navegador')
         return
@@ -200,7 +345,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(r.get('n_canvas', 0) >= 1, (rotulo + ': há gráfico (canvas) na página (%s)') % r.get('n_canvas'))
     ctx.confere(r.get('n_erros_tela') == 0, rotulo + ': nenhum aviso de erro na tela de Resultados')
     ctx.confere('Última conferência com o IBGE' in (r.get('faixa') or ''), (rotulo + ': faixa de estado diz quando conferiu (%r)') % (r.get('faixa'),))
-    ctx.confere(r.get('menu') == ['Resultados*', 'Gerar release', 'Sobre'], (rotulo + ': menu e item ativo (%r)') % (r.get('menu'),))
+    ctx.confere(r.get('menu') == ['Resultados*', 'Comparar períodos', 'Gerar release', 'Sobre'], (rotulo + ': menu e item ativo (%r)') % (r.get('menu'),))
     s = r.get('seccoes') or {}
     ctx.confere(s.get('brasil', 0) > 500 and s.get('regioes', 0) > 500 and s.get('regioes_norte') and s.get('informalidade'),
                 (rotulo + ': seções Brasil, Regiões e indicador escolhido desenham (%r)') % (s,))
@@ -209,6 +354,54 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     rel10 = r.get('release10') or {}
     ctx.confere(rel10.get('raiz'), (rotulo + ': o passo 10 do assistente desenha (%r)') % (rel10,))
     ctx.confere('Versão do núcleo' in (r.get('sobre') or '') and 'Armazenamento' in (r.get('sobre') or ''), rotulo + ': página Sobre')
+
+    v = r.get('visual') or {}
+    ctx.confere(v.get('hero') and 'significância' not in (v.get('subtitulo') or '') and v.get('subtitulo') == 'Resultados da PNAD Contínua',
+                (rotulo + ': cabeçalho único (barra verde) com o título da página (%r)') % (v.get('subtitulo'),))
+    ctx.confere(all(x in (v.get('hero_botoes') or []) for x in ('Apresentar', 'PDF', 'Atualizar com o IBGE')) and (v.get('hero_botoes') or []).count('Gerar release') == 0,
+                (rotulo + ': botões do cabeçalho, sem "Gerar release" repetido (%r)') % (v.get('hero_botoes'),))
+    ctx.confere('Capital e RM' in (v.get('secoes') or []) and 'Comparar períodos' not in (v.get('secoes') or []), (rotulo + ': seções novas (%r)') % (v.get('secoes'),))
+    ctx.confere(v.get('kpis', 0) >= 8 and v.get('sparks', 0) >= 8, (rotulo + ': cartões-resumo com minigráfico (%s/%s)') % (v.get('kpis'), v.get('sparks')))
+    ctx.confere(v.get('btn_cheia', 0) >= 3 and v.get('btn_jpg', 0) >= 3, (rotulo + ': todo gráfico e tabela tem tela cheia e JPG (%s/%s)') % (v.get('btn_cheia'), v.get('btn_jpg')))
+    m = v.get('modo') or {}
+    ctx.confere(m.get('diferente') and m.get('voltou') and len(m.get('rotulos') or []) == 2, (rotulo + ': alternar nível × variação muda os dados e volta (%r)') % (m,))
+    c = v.get('cheia') or {}
+    ctx.confere(c.get('aberta') and c.get('canvas') and c.get('altura', 0) > 300 and c.get('fechou'), (rotulo + ': tela cheia abre com o gráfico grande e Esc fecha (%r)') % (c,))
+    j = v.get('jpg') or []
+    ctx.confere(len(j) >= 2 and all(x['tipo'] == 'image/jpeg' and x['bytes'] > 5000 for x in j), (rotulo + ': JPG de gráfico e de tabela (%r)') % (j,))
+    rk = v.get('ranking') or {}
+    ctx.confere(len(rk.get('modos') or []) == 2 and rk.get('mudou'), (rotulo + ': ranking de contagem alterna quantidade × %% do Brasil (%r)') % (rk,))
+    cp = v.get('capitais') or {}
+    ctx.confere(cp.get('cartoes', 0) >= 3 and cp.get('canvases', 0) >= 1 and cp.get('tem') and cp.get('kpis', 0) >= 2 and cp.get('linhas', 0) >= 3, (rotulo + ': seção Capital e RM (%r)') % (cp,))
+    cm = v.get('comparar') or {}
+    ctx.confere(cm.get('selects') == 3 and cm.get('linhas') == 8 and cm.get('apos') == 8 and 'a=' in (cm.get('hash') or '') and cm.get('leitura') and cm.get('abs'),
+                (rotulo + ': Comparar períodos (controles, 8 indicadores, troca de período, modo p.p.) (%r)') % (cm,))
+    ro = v.get('rotulos') or {}
+    ctx.confere(ro.get('imagens', 0) >= 10 and not ro.get('sobreposicoes'), (rotulo + ': NENHUM rótulo sobre outro nem fora da imagem em %s mapas/gráficos (%s)') % (ro.get('imagens'), (ro.get('sobreposicoes') or [])[:5]))
+    ctx.confere((v.get('espalhar') or {}).get('folga', 0) >= 24, (rotulo + ': espalhar mantém o espaço mínimo entre rótulos (%r)') % (v.get('espalhar'),))
+    ap = v.get('apresentacao') or {}
+    ctx.confere(ap.get('aberta') and ap.get('pontos', 0) >= 15 and (ap.get('cont') or '').startswith('2 /') and ap.get('fechou'), (rotulo + ': apresentação abre, navega e fecha (%r)') % (ap,))
+    pf = v.get('pdf') or {}
+    ctx.confere(pf.get('cabeca') == '%PDF-' and pf.get('eof') and pf.get('paginas') == v.get('slides') and pf.get('bytes', 0) > 50000, (rotulo + ': PDF do relatório, uma página por slide (%r, slides=%s)') % (pf, v.get('slides')))
+
+    v2 = r.get('visual') or {}
+    rt = v2.get('release_tabela') or {}
+    ctx.confere(rt.get('tabelas', 0) == 1 and rt.get('fonte_md') and not rt.get('cru') and rt.get('revisao'), (rotulo + ': prévia do release com tabela de verdade, "Fonte" menor e sem jargão (%r)') % (rt,))
+    pt = v2.get('pdf_texto') or {}
+    ctx.confere(all(pt.get(k) for k in ('pagina', 'tw', 'faixa', 'tabela_cab', 'logo', 'sem_about')), (rotulo + ': PDF com cabeçalho, rodapé "Página n de N", texto justificado, tabela e logo (%r)') % (pt,))
+    sl = v2.get('slider') or {}
+    ctx.confere(sl.get('total', 0) > 20 and sl.get('reduzido', 0) < sl.get('total', 0) and sl.get('volta') and ' a ' in (sl.get('sub') or ''), (rotulo + ': slider de período reduz o gráfico e "Período inteiro" volta (%r)') % (sl,))
+    pb = v2.get('publicacao') or {}
+    ctx.confere(pb.get('opcoes', 0) >= 4 and pb.get('ultimo') == pb.get('esperado'), (rotulo + ': publicação passada corta as séries naquele trimestre (%r)') % (pb,))
+    su2 = v2.get('semUf') or {}
+    ctx.confere(su2.get('aviso') and su2.get('sem_termo') and 'UF em destaque' not in (su2.get('selo') or '') and su2.get('cartoes', 0) >= 3 and su2.get('canvas', 0) >= 1 and su2.get('slides', 0) >= 10
+                and all((su2.get(k) or {}).get('cartoes', 0) >= 2 and (su2.get(k) or {}).get('erro') == 0 for k in ('regioes', 'capitais', 'comparar', 'brasil')),
+                (rotulo + ': UF "Nenhuma" funciona em todas as seções e na apresentação (%r)') % (su2,))
+    br = v2.get('barra') or {}
+    ctx.confere(br.get('status') and br.get('dica') and br.get('aria'), (rotulo + ': barra lateral com status embaixo e dica ao passar o mouse (%r)') % (br,))
+    ctx.confere(r.get('menu_inicio_estendido') and r.get('menu_recolheu'), rotulo + ': a barra lateral abre estendida e se recolhe sozinha depois de 10 s')
+    ctx.confere(not r.get('suspeitos'), (rotulo + ': nenhuma tela mostra null/undefined/NaN/[object] (%s)') % (r.get('suspeitos') or [])[:4])
+    ctx.confere(r.get('contato') and r.get('contato_rodape'), rotulo + ': e-mail de contato em Sobre e no rodapé do menu')
     t = r.get('apos_trocar_uf') or {}
     ctx.confere(t.get('uf') == '12' and t.get('tem_acre'), (rotulo + ': trocar a UF mostra a nova (%r)') % (t.get('titulo'),))
     ctx.confere(t.get('capital_acre') and not t.get('capital_ro'),

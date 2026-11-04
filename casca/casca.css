@@ -10,3 +10,102 @@
   .topo h1 small { display: none; }
 }
 @media print { .nav, .topo, .toasts { display: none; } body { overflow: visible; } }
+
+/* ---- acabamento moderno (fase 5) ---- */
+body { background: linear-gradient(180deg, #eef5f1 0%, #f6faf8 40%, #f6faf8 100%); }
+.topo { background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-bottom: 1px solid #dfe9e3; box-shadow: 0 6px 20px rgba(16,42,35,.05); }
+.topo .marca { display: flex; align-items: center; gap: 11px; }
+.topo h1 { font-size: 17px; letter-spacing: -.2px; color: #0f3d2b; }
+.topo h1 small { font-weight: 500; }
+.nav { background: rgba(255,255,255,.7); border-right: 1px solid #dfe9e3; }
+.nav a { border-radius: 12px; transition: background .12s, color .12s; }
+.nav a .ico { display: inline-grid; place-items: center; width: 22px; opacity: .9; }
+.nav a.ativo { background: linear-gradient(135deg, #0f5132, #1b8a5a); color: #fff; box-shadow: 0 6px 16px rgba(15,81,50,.28); }
+.nav a.ativo .ico { opacity: 1; }
+.uf-escolha select { border-radius: 10px; border-color: #cfe0d6; font-weight: 600; }
+#dica-uso { background: #fff; border: 1px solid #dfe9e3; border-radius: 14px; padding: 8px 12px; }
+.toast { border-radius: 12px; box-shadow: 0 10px 30px rgba(16,42,35,.25); }
+
+.nav .nav-status { margin-top: auto; padding: 10px 10px 2px; font-size: 11px; line-height: 1.4; color: #587068; }
+.nav .nav-status:empty { display: none; }
+.nav .nav-status .mini-info { margin: 0; font-size: 11px; }
+.nav .nav-status + .rodape { margin-top: 0; }
+body.menu-recolhido .nav .nav-status { display: none; }
+
+/* ================= revisão 2: relevo, volume e responsividade da casca ================= */
+.app { grid-template-rows: auto minmax(0, 1fr); }
+.topo { min-height: 56px; padding: 6px 16px; background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(236,245,240,.96)); border-bottom: 1px solid #d3e2d9;
+  box-shadow: 0 1px 0 #fff inset, 0 2px 4px rgba(16,42,35,.06), 0 12px 26px -10px rgba(16,42,35,.20); }
+.uf-escolha { background: linear-gradient(180deg, #fff, #f0f6f2); border: 1px solid #d0e0d6; border-radius: 12px; padding: 2px 4px 2px 11px; gap: 4px; font-weight: 700; color: #476258;
+  box-shadow: 0 1px 0 #fff inset, 0 2px 6px rgba(16,42,35,.10); }
+.uf-escolha select { border: 0; background: transparent; box-shadow: none; padding: 7px 4px; max-width: 240px; color: #14302a; border-radius: 8px; cursor: pointer; }
+.uf-escolha select:focus-visible { outline: 2px solid #1a73e8; outline-offset: 1px; }
+.nav { background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(240,247,243,.94)); box-shadow: 1px 0 0 #fff inset, 8px 0 22px -12px rgba(16,42,35,.22); }
+.nav a { padding: 10px 12px; border: 1px solid transparent; }
+.nav a:hover { background: linear-gradient(180deg, #fff, #edf5f0); border-color: #d3e3da; box-shadow: 0 1px 0 #fff inset, 0 4px 10px rgba(16,42,35,.09); }
+.nav a.ativo { background: linear-gradient(180deg, #1e9a66, #0f5132); border-color: #0b3d2b; color: #fff;
+  box-shadow: 0 1px 0 rgba(255,255,255,.35) inset, 0 -2px 0 rgba(0,0,0,.2) inset, 0 6px 14px rgba(15,81,50,.35); }
+.principal { scroll-behavior: smooth; padding-bottom: 28px; }
+#dica-uso { background: rgba(255,255,255,.7); border: 1px dashed #cadbd0; border-radius: 12px; padding: 5px 6px 5px 12px; margin: 10px 16px 0; font-size: 12.5px; color: #5d766c; gap: 10px; flex-wrap: nowrap; align-items: center; box-shadow: none; }
+#dica-uso .mo-btn { width: 28px; height: 28px; margin-left: auto; flex: 0 0 auto; }
+#dica-uso svg { flex: 0 0 auto; opacity: .7; }
+@media (min-width: 1700px) { .conteudo { padding-left: 28px; padding-right: 28px; } }
+@media (max-width: 1000px) {
+  .topo .marca h1 small { display: none; }
+  .uf-escolha select { max-width: 170px; }
+}
+@media (max-width: 700px) {
+  .topo { flex-wrap: wrap; gap: 6px 8px; padding: 6px 10px; }
+  .topo .marca { flex: 1 1 auto; min-width: 0; } .topo h1 { font-size: 15px; } .topo .espaco { display: none; }
+  .uf-escolha { flex: 1 1 calc(50% - 6px); font-size: 0; padding-left: 6px; min-width: 0; }
+  .uf-escolha select { font-size: 13px; width: 100%; max-width: none; min-width: 0; }
+  #dica-uso { margin: 8px 10px 0; font-size: 12px; align-items: flex-start; }
+  .conteudo { padding-left: 10px; padding-right: 10px; }
+}
+
+/* ================= cabeçalho único: a barra verde ================= */
+.topo { background: linear-gradient(180deg, #1c8a5c 0%, #0f5132 62%, #0b3d2b 100%); border-bottom: 1px solid #072a1d; color: #fff; position: relative; overflow: visible;
+  box-shadow: 0 1px 0 rgba(255,255,255,.28) inset, 0 -2px 0 rgba(0,0,0,.18) inset, 0 3px 6px rgba(11,61,43,.25), 0 18px 36px -12px rgba(11,61,43,.45); gap: 10px 12px; }
+.topo::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 50%); }
+.topo > * { position: relative; z-index: 1; }
+.topo .marca { color: #fff; }
+.topo .marca-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.topo h1 { color: #fff; font-size: 17px; margin: 0; white-space: nowrap; }
+.topo .marca-txt small { color: rgba(255,255,255,.82); font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 38vw; }
+.topo .btn-menu { background: linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.08)); border: 1px solid rgba(255,255,255,.32); color: #fff; box-shadow: 0 1px 0 rgba(255,255,255,.3) inset, 0 2px 6px rgba(0,0,0,.22); }
+.topo .btn-menu:hover { background: rgba(255,255,255,.3); }
+.topo .uf-escolha { background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(228,241,234,.94)); border-color: rgba(255,255,255,.5); color: #2f5446; }
+.cab-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+.cab-acoes:empty { display: none; }
+.cab-acoes .mo-btn-hero, .cab-acoes .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; color: #fff; white-space: nowrap;
+  background: linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.08)); border: 1px solid rgba(255,255,255,.32); box-shadow: 0 1px 0 rgba(255,255,255,.3) inset, 0 2px 6px rgba(0,0,0,.22); }
+.cab-acoes .mo-btn-hero:hover, .cab-acoes .btn:hover { background: rgba(255,255,255,.3); transform: translateY(-1px); }
+.cab-acoes .mo-btn-hero:active, .cab-acoes .btn:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.3); }
+.cab-acoes .btn.primario, .cab-acoes .mo-btn-hero.primario { background: linear-gradient(180deg, #fff, #dff2e7); color: #0f5132; border-color: #fff; box-shadow: 0 1px 0 #fff inset, 0 3px 8px rgba(0,0,0,.25); }
+.cab-acoes .btn:disabled { opacity: .65; cursor: default; }
+@media (max-width: 1300px) { .cab-acoes .mo-btn-rot { display: none; } .cab-acoes .btn.primario { padding: 8px 12px; } .topo .marca-txt small { max-width: 24vw; } }
+@media (max-width: 700px) {
+  .topo .marca-txt small { max-width: 52vw; }
+  .cab-acoes { order: 3; flex: 1 1 100%; justify-content: flex-end; }
+  .cab-acoes .mo-btn-hero, .cab-acoes .btn { padding: 8px 12px; }
+}
+/* página de texto: linha legível em tela larga */
+.conteudo.mo-pagina.sobre { max-width: 980px; display: block; }
+.conteudo.mo-pagina.sobre > * { margin-top: 14px; }
+.conteudo.mo-pagina.sobre p, .conteudo.mo-pagina.sobre li { text-align: justify; hyphens: auto; }
+@media (max-width: 1100px) {
+  .topo { flex-wrap: wrap; }
+  .topo .espaco { flex: 1 1 0; min-width: 0; }
+  .topo .marca { flex: 0 1 auto; min-width: 0; }
+  .topo .uf-escolha { flex: 0 1 auto; min-width: 0; }
+}
+
+/* ações do cabeçalho: só ícones (a dica aparece ao passar o mouse); seletores menores e discretos */
+.cab-acoes .mo-btn-rot { display: none; }
+.cab-acoes .mo-btn-hero, .cab-acoes .btn { width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 11px; }
+.cab-acoes .girando svg { animation: girar 1.4s linear infinite; }
+.topo .uf-escolha { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.24); box-shadow: none; color: rgba(255,255,255,.8); font-size: 11px; font-weight: 600; border-radius: 9px; padding: 0 2px 0 9px; }
+.topo .uf-escolha select { color: #fff; font-size: 12px; font-weight: 600; padding: 5px 2px; max-width: 150px; }
+.topo .uf-escolha select option { color: #14302a; background: #fff; }
+.topo .uf-escolha:hover { background: rgba(255,255,255,.2); }
+@keyframes girar { to { transform: rotate(360deg); } }

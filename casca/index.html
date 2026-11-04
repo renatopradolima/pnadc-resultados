@@ -17,17 +17,21 @@
   <header class="topo">
     <button class="btn icone btn-menu" id="btn-menu" title="Recolher / abrir o menu" aria-label="Recolher ou abrir o menu" aria-expanded="true"><span data-icone="menu" data-ic-tam="20"></span></button>
     <a class="marca" href="#/publicacoes?sec=uf" style="text-decoration:none">
-      <h1>PNADC Resultados <small>Os números que o IBGE divulga da PNAD Contínua</small></h1>
+      <div class="marca-txt"><h1>PNADC Resultados</h1><small id="cab-pagina">Os números que o IBGE divulga da PNAD Contínua</small></div>
     </a>
     <div class="espaco"></div>
+    <div class="cab-acoes" id="cab-acoes"></div>
+    <label class="uf-escolha" for="seletor-publicacao">Publicação <select id="seletor-publicacao" aria-label="Publicação em análise"><option value="">Última</option></select></label>
     <label class="uf-escolha" for="seletor-uf">UF em destaque <select id="seletor-uf" aria-label="UF em destaque"></select></label>
     <div class="status" id="status-topo"></div>
   </header>
 
   <nav class="nav" id="nav">
-    <a href="#/publicacoes?sec=uf" data-pagina="publicacoes"><span class="ico" data-icone="publicacao"></span>Resultados</a>
-    <a href="#/publicacoes?sec=release&amp;passo=1" data-pagina="release"><span class="ico" data-icone="documento"></span>Gerar release</a>
-    <a href="#/sobre" data-pagina="sobre"><span class="ico" data-icone="livro"></span>Sobre</a>
+    <a href="#/publicacoes?sec=uf" data-pagina="publicacoes" data-dica="Resultados: números do Brasil, das regiões, da UF, da capital e da região metropolitana"><span class="ico" data-icone="publicacao"></span>Resultados</a>
+    <a href="#/publicacoes?sec=comparar" data-pagina="comparar" data-dica="Comparar períodos: a diferença entre dois momentos, indicador por indicador"><span class="ico" data-icone="comparar"></span>Comparar períodos</a>
+    <a href="#/publicacoes?sec=release&amp;passo=1" data-pagina="release" data-dica="Gerar release: texto, imagens e PDF prontos para divulgar"><span class="ico" data-icone="documento"></span>Gerar release</a>
+    <a href="#/sobre" data-pagina="sobre" data-dica="Sobre: de onde vêm os dados, versão, armazenamento e contato"><span class="ico" data-icone="livro"></span>Sobre</a>
+    <div class="nav-status" id="nav-status"></div>
     <div class="rodape" id="nav-rodape"></div>
   </nav>
 

@@ -1,18 +1,26 @@
 # PNADC Resultados
 
-Os números que o IBGE divulga da **PNAD Contínua** — Brasil, Grandes Regiões e a UF escolhida — em
-tabelas, gráficos e texto, com aviso de publicação nova e gerador de releases.
+Os números que o **IBGE divulga da PNAD Contínua** — Brasil, Grandes Regiões, UF, capital e região metropolitana — num
+arquivo só (`PNADC_Resultados.html`): abra com duplo clique no Edge ou no Chrome. Sem instalação, sem servidor, sem login.
 
-**Como usar (meta do projeto):** dar duplo clique em `PNADC_Resultados.html` (Edge ou Chrome).
-Sem instalação, sem servidor, sem login. A primeira abertura baixa as tabelas públicas do IBGE; depois
-fica tudo guardado no seu navegador.
+- **Resultados** com a significância publicada de cada variação e o CV sempre à vista; escolha da UF em destaque (ou nenhuma)
+  e da publicação em análise (por padrão a última).
+- Gráficos e tabelas em **tela cheia**, exportáveis em **JPG**, com **slider de período** e alternância entre quantidade e
+  percentual onde faz sentido. **Comparar períodos**, **Capital e RM**, **mapa das UFs**.
+- **Apresentar** (slides em tela cheia) e **PDF** do relatório; **gerador de releases** (texto, imagens, HTML e PDF).
+- Aviso de publicação nova do IBGE. Os dados vêm direto da API pública de agregados do IBGE (SIDRA) e ficam guardados no
+  seu navegador; nada sai do seu computador além dos pedidos ao IBGE.
 
-> Estado (04/11/2026): **fases 1 a 4 feitas** — o SuperC usa este núcleo (cópia sincronizada) e oferece o arquivo pelo botão "Baixar o PNADC Resultados"; falta só a conferência por duplo clique em `file://` com uma pessoa: o arquivo `dist/PNADC_Resultados.html` existe (gerado por
-> `python -I scripts/construir.py`) e funciona com dados reais do IBGE; falta conferir por duplo clique em `file://`
-> (Edge e Chrome). Leia o [PLANO.md](PLANO.md).
+Este programa não é um produto oficial do IBGE.
 
-É derivado da página **Resultados da PNADC** do SuperC PNADC (`C:\Projetos\SuperC`), e o que for
-avançado aqui chega à página do SuperC pelo script `scripts/sincronizar.py` (ver o plano, seção 5).
+## Desenvolvimento
 
-Dados: API pública de agregados do IBGE (`servicodados.ibge.gov.br`). Nada sai do seu computador além
-dos pedidos ao IBGE.
+```bash
+python -I scripts/construir.py   # gera dist/PNADC_Resultados.html
+python -I testes/rodar.py        # suíte (sem rede)
+```
+
+Veja [CONTRIBUTING.md](CONTRIBUTING.md), [PLANO.md](PLANO.md) e [docs/PUBLICAR_NO_GITHUB.md](docs/PUBLICAR_NO_GITHUB.md).
+Dados do IBGE: <https://sidra.ibge.gov.br/>. Avisos de terceiros: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+**Erros e sugestões:** abra uma *issue* ou escreva para renatoprado.lima@gmail.com.

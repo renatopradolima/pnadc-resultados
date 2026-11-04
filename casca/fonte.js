@@ -21,11 +21,28 @@ const UFS = [
 ].map(x => ({ codigo: x[0], sigla: x[1], nome: x[2] }));
 
 const FONTE = (() => {
-  const CHAVE_UF = 'pnadc.uf';
+  const CHAVE_UF = 'pnadc.uf', CHAVE_REF = 'pnadc.publicacao';
+  let referencia = null;
   const cfg = { io: null, agora: function () { return new Date(); }, kv: null, tabelas: null, indicadores: null };
   let A = null, aviso = null, tipo = null, iniciando = null, ufAtual = null, ultimoErro = null;
 
+  /* "Nenhuma": sem UF em destaque. O código vazio manda baixar capitais e regiões metropolitanas de TODAS as UFs. */
+  const NENHUMA = { codigo: '', sigla: '', nome: '' };   // o rótulo "Nenhuma" existe só no seletor: nada impresso usa este nome
+  /* PUBLICAÇÃO em análise (AAAAQQ do trimestre) ou null = a última. Guardada no navegador. */
+  function publicacao() {
+    if (referencia === null) {
+      let r = null;
+      try { r = localStorage.getItem(CHAVE_REF); } catch (e) { r = null; }
+      referencia = r && /^\d{6}$/.test(r) ? r : '';
+    }
+    return referencia || null;
+  }
+  function definirPublicacao(p) {
+    referencia = p && /^\d{6}$/.test(p) ? p : '';
+    try { if (referencia) localStorage.setItem(CHAVE_REF, referencia); else localStorage.removeItem(CHAVE_REF); } catch (e) { /* vale nesta aba */ }
+  }
   function ufPorCodigo(c) {
+    if (c === '') return NENHUMA;
     for (let i = 0; i < UFS.length; i++) if (UFS[i].codigo === String(c)) return UFS[i];
     return null;
   }
@@ -72,7 +89,7 @@ const FONTE = (() => {
         return A.kv.set('serie:' + t.tabela, s);
       }).then(() => A.estado()).then(est => {
         if (!est[t.tabela]) return undefined;
-        const c = Object.assign({}, est[t.tabela], { ultimo_periodo: null, modificacao: null, quando: '' });
+        const c = Object.assign({}, est[t.tabela], { ultimo_periodo: null, modificacao: null, quando: '', n_valores: null });
         return A.gravarConsulta(t.tabela, c);
       });
     });
@@ -104,6 +121,7 @@ const FONTE = (() => {
     }).then(m => {
       m.atualizando = SIDRA.emCurso();
       m.agendada = agendada;
+      m.referencia = publicacao();
       m.vencidas = venc;
       if (ultimoErro) m.erro_passada = String(ultimoErro.message || ultimoErro);
       return m;
@@ -120,5 +138,5 @@ const FONTE = (() => {
   /* { tipo: 'indexedDB'|'localStorage'|'memoria', aviso } -- só depois de pronto() */
   function armazenamento() { return { tipo, aviso }; }
 
-  return { uf, ufs: () => UFS, definirUf, configurar, pronto, carregar, novidades, armazenamento, _armazem: () => A };
+  return { uf, ufs: () => UFS, definirUf, publicacao, definirPublicacao, configurar, pronto, carregar, novidades, armazenamento, _armazem: () => A };
 })();

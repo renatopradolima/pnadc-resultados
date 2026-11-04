@@ -28,7 +28,7 @@ gestores que recebam o arquivo. Não há dado pessoal nem dado de coleta: tudo �
 
 1. **Pasta e nome**: `C:\Projetos\PNADC_Resultados`, produto "PNADC Resultados".
 2. **Sem servidor**: a camada de dados roda no navegador. Cache em IndexedDB (com `localStorage` e
-   memória como reserva). Servidor só para desenvolvimento, opcional (porta 8771, ver `C:\Projetos\PORTAS.md`).
+   memória como reserva). Servidor só para desenvolvimento, opcional (porta 8771, reservada na tabela de portas do mantenedor).
 3. **JavaScript é a fonte única da lógica de dados.** O `lib_sidra.py` do SuperC vira legado depois de
    provada a paridade (fase 3) — manter duas implementações é o jeito de as páginas divergirem.
 4. **Dono por arquivo** (seção 5): cada arquivo tem UM lugar onde se edita; o outro lado só recebe cópia.
@@ -277,6 +277,23 @@ mostrando o cache, e exportar texto/PNG/HTML/CSV com uma tela de verdade.
   para provar sem janela. Suíte: 343 verificações, 0 falha. No SuperC, `teste_resultados_sincronia.py` (37).
 - Conferido no navegador (servidor isolado do SuperC, porta 8799): o botão aparece, o arquivo é servido (717.186 bytes).
 
-**Falta** (só dá para ver com uma pessoa e uma janela): duplo clique em `file://` no Edge e no Chrome (IndexedDB em
-`file://`, abrir sem internet mostrando o cache, exportar texto/PNG/HTML/CSV) e um colega de fato receber o arquivo.
+**Conferência por duplo clique (04/11/2026)**: o usuário seguiu o roteiro (primeira abertura, reabrir com cache, sem
+internet, troca de UF, gerar release e exportar, tela estreita) com o arquivo baixado pelo botão do SuperC e relatou
+"tudo funcionou bem". Não foram anotados aqui o navegador exato, o tipo de armazenamento mostrado em Sobre nem o tempo
+da primeira baixada; se algum dia houver dúvida sobre IndexedDB em `file://`, é o que vale conferir de novo.
+**Falta**: um colega SEM o SuperC receber o arquivo de fato (pendrive ou zip) e usar.
 **Fase 5** (evolução própria) só depois de uso real.
+
+## 11. Fase 5 e revisão de interface (04/11/2026, núcleo 0.5.0)
+Feito: moldura única para gráficos e tabelas (`nucleo/moldura.js`: tela cheia, JPG, alternância de modo onde faz sentido,
+**slider de período** com dois cursores); seções **Capital e RM** e **Comparar períodos**; **modo apresentação** (slides em
+tela cheia, teclado e toque) e **PDF direto** (`nucleo/pdf.js`: faixa com logo, rodapé "Página n de N", texto justificado,
+tabelas de verdade, "Fonte" em corpo menor; sem `about:blank`); **mapa das UFs com limites reais** (`nucleo/mapa_uf.js`,
+gerado por `scripts/gerar_mapa_uf.py`); **seletor de publicação** (por padrão a última; as séries são cortadas no trimestre
+escolhido); **UF "Nenhuma"** (o rótulo só existe no seletor; nada impresso o usa); barra lateral com a conferência do IBGE
+embaixo, dicas ao passar o mouse e recolhimento automático após 10 s (sempre abre estendida); termos internos do IBGE
+retirados dos textos. Regras novas: **nenhum rótulo pode se sobrepor** (testado em todos os mapas e linhas dos slides) e
+nenhuma tela mostra `null`/`undefined`/`NaN`. Suíte: 391 verificações, 0 falha. Chrome vem antes do Edge nos testes
+(o Edge sem janela devolve vazio e deixa processo órfão).
+Pendente: README final/LICENSE para o GitHub (ver `docs/PUBLICAR_NO_GITHUB.md`) e nada do que está aqui foi commitado.
+

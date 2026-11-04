@@ -18,6 +18,12 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
+def pasta_superc(m):
+    """Pasta do SuperC: variável de ambiente SUPERC_PASTA, ou o "superc" de ORIGEM.json (relativo a esta pasta)."""
+    p = os.environ.get('SUPERC_PASTA') or m['superc']
+    return os.path.normpath(p if os.path.isabs(p) else os.path.join(RAIZ, p))
+
+
 def sha(caminho):
     h = hashlib.sha256()
     with open(caminho, 'rb') as f:
@@ -42,7 +48,7 @@ def lado_aqui(m, g):
 
 def lado_superc(m, g):
     gr = m['grupos'][g]
-    return os.path.join(m['superc'], *gr.get('superc', '').split('/')) if gr.get('superc') else None
+    return os.path.join(pasta_superc(m), *gr.get('superc', '').split('/')) if gr.get('superc') else None
 
 
 def arquivos_do_grupo(m, g):
@@ -78,7 +84,7 @@ def bloco_scripts(m):
 
 
 def _indice(m):
-    return os.path.join(m['superc'], *m['indice_superc'].split('/'))
+    return os.path.join(pasta_superc(m), *m['indice_superc'].split('/'))
 
 
 def _partes_indice(texto):
@@ -100,7 +106,7 @@ def _construir():
 
 
 def _destino_autonomo(m):
-    return os.path.join(m['superc'], *m['distribuicao']['arquivo_superc'].split('/'))
+    return os.path.join(pasta_superc(m), *m['distribuicao']['arquivo_superc'].split('/'))
 
 
 def _ler_texto(caminho):
@@ -164,7 +170,7 @@ def verificar(m):
         dono_aqui = gr['dono'] == 'PNADC_Resultados'
         pa, ps = lado_aqui(m, g), lado_superc(m, g)
         if g == 'kit':
-            ps = os.path.join(m['superc'], 'app')   # kit: caminhos relativos a app/ vêm em "arquivos"
+            ps = os.path.join(pasta_superc(m), 'app')   # kit: caminhos relativos a app/ vêm em "arquivos"
         for nome in arquivos_do_grupo(m, g):
             n += 1
             reg = m['hashes'].get('%s/%s' % (g, nome))
@@ -254,7 +260,7 @@ def puxar_kit(m):
     nomes = arquivos_do_grupo(m, g)
     if not nomes:
         print('kit sem arquivos listados em ORIGEM.json: nada a puxar'); return 0
-    base = os.path.join(m['superc'], 'app')
+    base = os.path.join(pasta_superc(m), 'app')
     os.makedirs(lado_aqui(m, g), exist_ok=True)
     for nome in nomes:
         origem = os.path.join(base, *nome.split('/'))

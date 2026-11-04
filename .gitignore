@@ -1,5 +1,13 @@
 dist/*
 !dist/.gitkeep
+site/
 __pycache__/
 *.pyc
 .claude/
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
+# estado local de quem desenvolve (não é do projeto)
+ORIGEM.local.json

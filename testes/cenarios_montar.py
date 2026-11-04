@@ -63,13 +63,11 @@ S.atualizar(A, '11', { io, agora: () => AGORA, tabelas: tabs })
 """
 
 
-def teste_montar(ctx):
+def _python(ctx, fix):
     sys.path.insert(0, ctx.SUPERC_SCRIPTS)
     import lib_curl
     import lib_sidra
     sys.path.remove(ctx.SUPERC_SCRIPTS)
-    fix = {'per6381': ctx.gravado('periodos_6381'), 'per6468': ctx.gravado('periodos_6468'),
-           'dados6381': ctx.gravado('dados_6381'), 'dados6468': ctx.gravado('dados_6468')}
 
     # ---- lado Python (referência)
     agora = datetime(2026, 10, 26, 9, 0, 0)
@@ -106,6 +104,17 @@ def teste_montar(ctx):
         vazio.close()
         lib_curl.chamar, lib_sidra.INDICADORES = original
     esp = ctx.canon(esp)
+    return esp
+
+
+def teste_montar(ctx):
+    fix = {'per6381': ctx.gravado('periodos_6381'), 'per6468': ctx.gravado('periodos_6468'),
+           'dados6381': ctx.gravado('dados_6381'), 'dados6468': ctx.gravado('dados_6468')}
+
+    esp = ctx.esperado('montar', lambda: _python(ctx, fix))
+    if esp is None:
+        print(u'AVISO  paridade do montar.js não exercitada: sem o SuperC e sem testes/esperado/montar.json')
+        return
 
     # ---- lado JS
     r = ctx.bancada(['indicadores.js', 'armazem.js', 'sidra.js', 'montar.js'], JS_MONTAR, {'FIX': fix})

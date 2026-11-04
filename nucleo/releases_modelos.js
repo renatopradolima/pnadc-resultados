@@ -241,16 +241,16 @@ const RELEASE_MODELOS = (() => {
   ];
   M.PUBLICOS = [
     { id: 'imprensa', rot: 'Imprensa', desc: 'Fato, número, gancho local e material pronto (release completo, tabela, gráfico, contato).' },
-    { id: 'gestores', rot: 'Gestores públicos e IBGE interno', desc: 'Conclusão e comparação para decidir: CV e significância explícitos, posição exata no ranking, o que não concluir.' },
+    { id: 'gestores', rot: 'Gestores e tomadores de decisão', desc: 'Conclusão e comparação para decidir: CV e significância explícitos, posição exata no ranking, o que não concluir.' },
     { id: 'geral', rot: 'Público geral', desc: 'Linguagem simples, conceito explicado, proporções do dia a dia ("cerca de um terço"), sem sigla sem tradução.' },
     { id: 'academia', rot: 'Academia', desc: 'Definições exatas, denominadores, CVs, tabelas do SIDRA e nota metodológica estendida.' },
-    { id: 'equipe', rot: 'Servidores da coleta (equipe)', desc: 'Reconhecimento: liga a resposta dos domicílios à precisão. Nunca expõe entrevistador nem usa dado operacional.' },
+    { id: 'equipe', rot: 'Equipe técnica da pesquisa', desc: 'Reconhecimento: liga a resposta dos domicílios à precisão. Nunca identifica entrevistador nem usa dado operacional.' },
   ];
   M.ESTILOS = [
     { id: 'factual', rot: 'Notícia factual', desc: 'O que saiu, sem interpretação: pirâmide invertida e verbos neutros.' },
     { id: 'analise', rot: 'Análise / interpretativo', desc: 'Relaciona indicadores, série e territórios ("Ao mesmo tempo, ..."); causa só se a fonte atribuir.' },
     { id: 'didatico', rot: 'Didático / explicativo', desc: 'Explica os conceitos com o dado do dia (caixa "Entenda", o que o número quer dizer na prática).' },
-    { id: 'institucional', rot: 'Institucional', desc: 'A voz do IBGE: nome completo da pesquisa e do instituto, terceira pessoa, sem coloquialismo.' },
+    { id: 'institucional', rot: 'Institucional', desc: 'Voz institucional: nome completo da pesquisa e do instituto, terceira pessoa, sem coloquialismo.' },
   ];
   M.TAMANHOS = { curta: { rot: 'Nota curta', faixa: [300, 500] }, padrao: { rot: 'Padrão', faixa: [2500, 4000] }, completo: { rot: 'Completo', faixa: [5000, 8000] } };
   const LIM = { x: 280, linkedin: 3000, instagram: 2200, instagramVisivel: 125, whatsapp: [400, 700], urlX: 23 };
@@ -1205,7 +1205,7 @@ const RELEASE_MODELOS = (() => {
     if (['site', 'impresso'].indexOf(E.midia) >= 0) add('contato', !!linhaContato(E), 'Contato de imprensa preenchido (passo 9)', false);
     // marcações manuais (§10, conferência final)
     add('manualNumeros', mk.numeros, 'Conferi os números com a fonte (SIDRA, Comentário ou Quadro Sintético)', true);
-    add('manualRevisao', mk.revisao, 'Revisão humana feita: quem publica tem a atribuição (CCS / comunicação da UE)', true);
+    add('manualRevisao', mk.revisao, 'Revisão humana feita: quem publica confirmou que tem a atribuição para divulgar', true);
     if (doc.visuais && doc.visuais.length) add('manualAlt', mk.alt, 'Revisei o texto alternativo das imagens', true);
     return out;
   };
@@ -1271,7 +1271,7 @@ const RELEASE_MODELOS = (() => {
           : k.estavel === k.n ? `estável em todas as ${ufs.length} UFs` : k.estavel ? `estável em ${k.estavel} das ${ufs.length} UFs` : `sem indicação de sentido da variação nas ${ufs.length} UFs`;
         out.push({ id: 'grade', tipo: 'grade', titulo: `${it.nm.titulo}: ${tGrade}`,
           subtitulo: `${it.ind.rotulo}, ${perCurto(F.per, F.fam)} · situação da variação ${compVis === 'ano' ? 'em um ano' : 'frente ao trimestre anterior'}, publicada pelo IBGE`, fonte, ind: it.ind, casas, sentido: it.ind.sentido,
-          alt: `Cartograma em grade das 27 unidades da federação, uma casa igual por UF, com a sigla e ${it.ind.rotulo.toLowerCase()} no ${perLongo(F.per, F.fam)}. Situação da variação ${compVis === 'ano' ? 'em um ano' : 'frente ao trimestre anterior'}: ${k.aumentou} UF(s) com aumento significativo, ${k.diminuiu} com redução significativa, as demais estáveis ou sem comparação.` + (foco ? ` ${F.uf.nome} em destaque: ${fmtVis(it.ind, (casas.find(c => c.destaque) || {}).valor)}.` : '') });
+          alt: `Mapa do Brasil com os limites das 27 unidades da federação, cada uma com a sigla e ${it.ind.rotulo.toLowerCase()} no ${perLongo(F.per, F.fam)}. Situação da variação ${compVis === 'ano' ? 'em um ano' : 'frente ao trimestre anterior'}: ${k.aumentou} UF(s) com aumento significativo, ${k.diminuiu} com redução significativa, as demais estáveis ou sem comparação.` + (foco ? ` ${F.uf.nome} em destaque: ${fmtVis(it.ind, (casas.find(c => c.destaque) || {}).valor)}.` : '') });
       }
     }
     if (V.halteres && !t.conjunto) {

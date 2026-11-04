@@ -240,16 +240,20 @@ def teste_cenarios(ctx):
 
 
 def teste_catalogo(ctx):
-    sys.path.insert(0, ctx.SUPERC_SCRIPTS)
-    import lib_sidra
-    sys.path.remove(ctx.SUPERC_SCRIPTS)
+    def calc():
+        sys.path.insert(0, ctx.SUPERC_SCRIPTS)
+        import lib_sidra
+        sys.path.remove(ctx.SUPERC_SCRIPTS)
+        return ctx.canon({'indicadores': lib_sidra.INDICADORES, 'precisao': lib_sidra.PRECISAO_CV, 'legenda': lib_sidra.FONTE_LEGENDA,
+                          'tabelas': [[t, f, e] for t, f, e in lib_sidra.tabelas()]})
+    esperado = ctx.esperado('catalogo', calc)
+    if esperado is None:
+        print(u'AVISO  paridade do catálogo não exercitada: sem o SuperC e sem testes/esperado/catalogo.json')
+        return
     r = ctx.bancada(['indicadores.js'], JS_CATALOGO, {'CVS': CVS})
     if r is None or 'FALHA_GERAL' in r:
         ctx.confere(False, 'catálogo: ' + ('nenhum navegador' if r is None else r['FALHA_GERAL']))
         return
-    esperado = ctx.canon({'indicadores': lib_sidra.INDICADORES, 'precisao': lib_sidra.PRECISAO_CV,
-                          'legenda': lib_sidra.FONTE_LEGENDA,
-                          'tabelas': [[t, f, e] for t, f, e in lib_sidra.tabelas()]})
     for k in ('indicadores', 'precisao', 'legenda', 'tabelas'):
         d = ctx.diferenca(esperado[k], r[k])
         ctx.confere(d is None, 'paridade do catálogo / %s: %s' % (k, d))
@@ -257,7 +261,7 @@ def teste_catalogo(ctx):
     def classe(cv):
         if cv is None:
             return None
-        for ate, nome in lib_sidra.PRECISAO_CV:
+        for ate, nome in esperado['precisao']:
             if ate is None or cv <= ate:
                 return nome
     ctx.confere(r['classes'] == [classe(c) for c in CVS], 'classes de precisão iguais às da página (%r)' % (r['classes'],))

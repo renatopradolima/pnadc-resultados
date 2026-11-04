@@ -11,6 +11,7 @@ Roda:  python -I testes/rodar.py
 import html as H
 import json
 import os
+import pathlib
 import shutil
 import subprocess
 import sys
@@ -20,17 +21,63 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 GRAVADOS = os.path.join(AQUI, 'gravados')
 ORIGEM = os.path.join(RAIZ, 'ORIGEM.json')
-SUPERC_SCRIPTS = r'C:\Projetos\SuperC\scripts'
+
+
+def pasta_superc():
+    """Projeto irmão (SuperC), OPCIONAL: variável PNADC_SUPERC, ou o "superc" de ORIGEM.json (relativo a esta pasta)."""
+    p = os.environ.get('PNADC_SUPERC') or os.environ.get('SUPERC_PASTA')
+    if not p:
+        try:
+            with open(ORIGEM, encoding='utf-8') as f:
+                p = json.load(f).get('superc')
+        except (OSError, ValueError):
+            p = None
+    p = p or os.path.join('..', 'SuperC')
+    return os.path.normpath(p if os.path.isabs(p) else os.path.join(RAIZ, p))
+
+
+SUPERC = pasta_superc()
+SUPERC_SCRIPTS = os.path.join(SUPERC, 'scripts')
+ESPERADO = os.path.join(AQUI, 'esperado')
+
+
+def superc_disponivel():
+    return os.path.exists(os.path.join(SUPERC_SCRIPTS, 'lib_sidra.py'))
+
+
+def esperado(nome, calcular):
+    """Saída de REFERÊNCIA (a do lib_sidra.py do SuperC) para a paridade. Com o SuperC presente, calcula ao vivo e só
+    regrava testes/esperado/<nome>.json com --gravar (ou se não existir); sem ele, lê o arquivo guardado. None = sem
+    como comparar (nem SuperC nem arquivo)."""
+    arq = os.path.join(ESPERADO, nome + '.json')
+    if superc_disponivel():
+        v = calcular()
+        guardado = None
+        if os.path.exists(arq):
+            with open(arq, encoding='utf-8') as f:
+                guardado = json.load(f)
+        if '--gravar' in sys.argv or guardado is None:
+            os.makedirs(ESPERADO, exist_ok=True)
+            with open(arq, 'w', encoding='utf-8', newline='\n') as f:
+                json.dump(v, f, ensure_ascii=False, indent=1, sort_keys=True)
+                f.write('\n')
+        elif json.loads(json.dumps(v)) != guardado:
+            print(u'AVISO  testes/esperado/%s.json está desatualizado em relação ao SuperC: rode com --gravar' % nome)
+        return v
+    if os.path.exists(arq):
+        with open(arq, encoding='utf-8') as f:
+            return json.load(f)
+    return None
+
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-# Edge primeiro (regra do projeto). Em 04/11/2026 o Edge sem janela desta máquina devolve saída VAZIA
-# (também para o runner do SuperC); o Chrome responde. Por isso o runner tenta cada um e fica com o
-# primeiro que devolver DOM.
-NAVEGADORES = [r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
-               r'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
-               r'C:\Program Files\Google\Chrome\Application\chrome.exe',
-               r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe']
+# Chrome primeiro: em 04/11/2026 o Edge sem janela desta máquina devolve saída VAZIA e ainda deixa um processo
+# rodando (que disputa CPU e estoura o tempo do teste). O runner tenta cada um e fica com o primeiro que devolver DOM.
+NAVEGADORES = [r'C:\Program Files\Google\Chrome\Application\chrome.exe',
+               r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
+               r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+               r'C:\Program Files\Microsoft\Edge\Application\msedge.exe']
 
 falhas, feitas = [], 0
 
@@ -45,14 +92,14 @@ def confere(cond, msg):
 
 def navegadores():
     achados = [e for e in NAVEGADORES if os.path.exists(e)]
-    for nome in ('msedge', 'chrome'):
+    for nome in ('chrome', 'google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'msedge'):
         e = shutil.which(nome)
         if e and e not in achados:
             achados.append(e)
     return achados
 
 
-def rodar_no_edge(doc, timeout=180, virtual_ms=20000):
+def rodar_no_edge(doc, timeout=180, virtual_ms=20000, janela='1280,900'):
     """DOM final da bancada, ou None se não há navegador. Devolve '' se nenhum respondeu."""
     lista = navegadores()
     if not lista:
@@ -63,9 +110,10 @@ def rodar_no_edge(doc, timeout=180, virtual_ms=20000):
         f.write(doc)
     try:
         for n, exe in enumerate(lista):
-            r = subprocess.run([exe, '--headless', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-                                '--user-data-dir=' + os.path.join(pasta, 'perfil%d' % n),
-                                '--virtual-time-budget=%d' % virtual_ms, '--dump-dom', 'file:///' + arq.replace('\\', '/')],
+            extra = ['--no-sandbox'] if (os.environ.get('CI') or (hasattr(os, 'geteuid') and os.geteuid() == 0)) else []
+            r = subprocess.run([exe, '--headless', '--disable-gpu', '--no-first-run', '--no-default-browser-check'] + extra +
+                               ['--window-size=' + janela, '--user-data-dir=' + os.path.join(pasta, 'perfil%d' % n),
+                                '--virtual-time-budget=%d' % virtual_ms, '--dump-dom', pathlib.Path(arq).as_uri()],
                                capture_output=True, timeout=timeout)
             dom = r.stdout.decode('utf-8', 'replace')
             if dom.strip():
@@ -76,7 +124,7 @@ def rodar_no_edge(doc, timeout=180, virtual_ms=20000):
 
 
 def url_arquivo(rel):
-    return 'file:///' + os.path.join(RAIZ, rel).replace('\\', '/')
+    return pathlib.Path(os.path.join(RAIZ, rel)).as_uri()
 
 
 def gravado(nome):
@@ -317,7 +365,15 @@ def diferenca(a, b, caminho=''):
 def teste_sidra():
     entrada = {'normalizar': NORMALIZAR, 'rotulos': ROTULOS, 'ano_ant': ANO_ANT, 'datas': DATAS,
                'periodos_longos': PERIODOS_LONGOS, 'blocos': BLOCOS, 'cenarios': cenarios()}
-    py = lado_python(entrada)                  # preenche entrada['espec']
+    def _calcular():
+        saida = lado_python(entrada)             # preenche entrada['espec']
+        return {'saida': saida, 'espec': entrada['espec']}
+    ref = esperado('sidra', _calcular)
+    if ref is None:
+        print(u'AVISO  paridade do sidra.js não exercitada: sem o SuperC (%s) e sem testes/esperado/sidra.json' % SUPERC)
+        return
+    py = ref['saida']
+    entrada['espec'] = ref['espec']
     js = lado_js(entrada)
     if js is None:
         print(u'FALHOU  Edge não encontrado: nada foi exercitado')
@@ -358,10 +414,11 @@ def main():
     import cenarios as CEN
     import cenarios_montar as CM
     import casca as CA
+    import responsivo as RE
     ctx = sys.modules[__name__]
     todos = [('sidra', teste_sidra), ('catalogo', lambda: CEN.teste_catalogo(ctx)),
              ('cenarios', lambda: CEN.teste_cenarios(ctx)), ('montar', lambda: CM.teste_montar(ctx)),
-             ('casca', lambda: CA.teste_casca(ctx)), ('entregue', lambda: CA.teste_entregue(ctx))]
+             ('casca', lambda: CA.teste_casca(ctx)), ('responsivo', lambda: RE.teste_responsivo(ctx)), ('entregue', lambda: CA.teste_entregue(ctx))]
     pedidos = sys.argv[1:]
     for nome, fn in todos:
         if not pedidos or nome in pedidos:

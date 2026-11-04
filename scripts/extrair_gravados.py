@@ -5,7 +5,8 @@ disto, as fixtures daqui são a fonte. Não usa rede."""
 import ast, json, os, sys
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
-ORIGEM = r'C:\Projetos\SuperC\scripts\teste_sidra.py'
+SUPERC = os.environ.get('SUPERC_PASTA') or os.path.join(RAIZ, '..', 'SuperC')
+ORIGEM = os.path.join(SUPERC, 'scripts', 'teste_sidra.py')
 NOMES = {'PER_6381': 'periodos_6381', 'PER_6468': 'periodos_6468',
          'DADOS_6381': 'dados_6381', 'DADOS_6468': 'dados_6468'}
 arvore = ast.parse(open(ORIGEM, encoding='utf-8').read())

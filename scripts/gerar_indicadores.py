@@ -2,7 +2,8 @@
 """Gera nucleo/indicadores.js a partir do catálogo de SuperC/scripts/lib_sidra.py (uso único: depois disto o
 catálogo é editado AQUI, em indicadores.js; o teste de paridade acusa divergência com o Python)."""
 import json, os, sys
-sys.path.insert(0, r'C:\Projetos\SuperC\scripts')
+SUPERC = os.environ.get('SUPERC_PASTA') or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '..', 'SuperC')
+sys.path.insert(0, os.path.join(SUPERC, 'scripts'))
 import lib_sidra as L
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def j(x, ind=2):
