@@ -327,22 +327,66 @@ const RELEASES = (() => {
     m.cv._rotulos = L.itens.map(it => it.rect);
     return m.cv;
   }
+  /* "Antes e agora" (halteres): uma linha por taxa, todas na MESMA escala de 0 a 100 (a posição é honesta), com o valor dos dois
+     períodos e a variação publicada ao lado. Círculo vazio = período anterior; cheio = atual (ficam um dentro do outro quando a
+     taxa não mudou). A cor só aparece quando o IBGE publica variação significativa; "estável" é o azul-ardósia. */
   function desenharHalteres(spec) {
-    const n = spec.linhas.length, W = 1200, H = Math.max(500, 230 + n * 60), m = moldura(spec, W, H), c = m.c;
-    const x0 = 330, x1 = W - 120, y0 = m.topo + 30, y1 = m.base - 20, h = (y1 - y0) / n;
-    const vmax = Math.max.apply(null, [].concat.apply([], spec.linhas.map(l => [l.de, l.para]))) * 1.1;
+    const n = spec.linhas.length, W = 1200, rowH = 68, H = Math.max(480, 250 + n * rowH), m = moldura(spec, W, H), c = m.c;
+    const xr = 30, xl = 340, x0 = 380, x1 = 770, xv = 800, xc = 985, wc = 185;
+    const maxv = Math.max.apply(null, [].concat.apply([], spec.linhas.map(l => [l.de, l.para])));
+    const passo = maxv > 50 ? 20 : maxv > 25 ? 10 : maxv > 12 ? 5 : 2;
+    const vmax = Math.max(passo * 2, Math.ceil(maxv * 1.08 / passo) * passo);
     const X = v => x0 + (x1 - x0) * v / vmax;
-    c.font = `14px ${FONTE}`; c.fillStyle = '#486581'; c.textAlign = 'left'; c.textBaseline = 'bottom';
-    c.fillText(`○ ${spec.perDe}   ● ${spec.perPara}`, x0, y0 - 6);
+    const f1 = v => RM.fmtVis({ tipo: 'taxa', casas: 1 }, v);
+    const yLeg = m.topo, yEixo = m.topo + 34, y0 = m.topo + 52, y1 = m.base - 34, h = Math.min(rowH, (y1 - y0) / n);
+    // legenda e títulos de coluna
+    c.textBaseline = 'middle'; c.font = `600 15px ${FONTE}`; c.textAlign = 'left'; c.fillStyle = '#243b53';
+    c.lineWidth = 3; c.strokeStyle = MOLDURA.COR.estavel; c.fillStyle = '#fff'; c.beginPath(); c.arc(xr + 8, yLeg + 10, 8, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = '#243b53'; c.fillText(spec.perDe, xr + 24, yLeg + 10);
+    const wDe = c.measureText(spec.perDe).width;
+    c.fillStyle = MOLDURA.COR.estavel; c.beginPath(); c.arc(xr + 24 + wDe + 40, yLeg + 10, 8, 0, 7); c.fill();
+    c.fillStyle = '#243b53'; c.fillText(spec.perPara, xr + 24 + wDe + 56, yLeg + 10);
+    c.font = `700 13px ${FONTE}`; c.fillStyle = '#486581'; c.textAlign = 'left';
+    c.fillText('ANTES → AGORA', xv, yEixo); c.fillText('VARIAÇÃO EM UM ANO', xc, yEixo);
+    // linhas, faixa alternada e grade
+    spec.linhas.forEach((l, i) => { if (i % 2 === 0) { c.fillStyle = '#f4f8fb'; c.fillRect(xr - 10, y0 + i * h, W - 2 * xr + 20, h); } });
+    c.textAlign = 'center'; c.font = `13px ${FONTE}`;
+    for (let v = 0; v <= vmax + 0.001; v += passo) {
+      c.strokeStyle = '#d9e3ea'; c.lineWidth = 1; c.beginPath(); c.moveTo(X(v), y0); c.lineTo(X(v), y0 + n * h); c.stroke();
+      c.fillStyle = '#6b8798'; c.fillText(`${v}%`, X(v), yEixo);
+    }
     spec.linhas.forEach((l, i) => {
-      const y = y0 + i * h + h / 2, cor = corEstado(l.estado, l.sentido), est = l.estado === 'estavel' || l.estado === 'sem';
-      c.strokeStyle = est ? MOLDURA.COR.estavel : cor; c.lineWidth = 5; c.beginPath(); c.moveTo(X(l.de), y); c.lineTo(X(l.para), y); c.stroke();
-      c.lineWidth = 3; c.fillStyle = '#fff'; c.beginPath(); c.arc(X(l.de), y, 8, 0, 7); c.fill(); c.stroke();
-      c.fillStyle = est ? '#78909c' : cor; c.beginPath(); c.arc(X(l.para), y, 9, 0, 7); c.fill();
-      c.fillStyle = '#243b53'; c.font = `600 16px ${FONTE}`; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(l.rotulo, x0 - 24, y);
-      c.textAlign = 'left'; c.font = `15px ${FONTE}`;
-      c.fillText(`${RM.fmtVis({ tipo: 'taxa', casas: 1 }, l.para)}  ${est ? (l.estado === 'estavel' ? 'estável' : 'sem indicação') : (l.estado === 'aumentou' ? '▲' : '▼')}`, Math.max(X(l.de), X(l.para)) + 16, y);
+      const y = y0 + i * h + h / 2, cor = corEstado(l.estado, l.sentido), est = l.estado === 'estavel' || l.estado === 'sem' || l.estado === 'sig0', tom = est ? MOLDURA.COR.estavel : cor;
+      // rótulo (até duas linhas, nunca cortado)
+      c.font = `700 16px ${FONTE}`; c.fillStyle = '#102a43'; c.textAlign = 'left'; c.textBaseline = 'middle';
+      const ls = quebrar(c, l.rotulo, xl - xr).slice(0, 2);
+      ls.forEach((t, k) => c.fillText(t, xr, y + (k - (ls.length - 1) / 2) * 19));
+      // trilho, haste e marcas
+      c.strokeStyle = '#d3dee6'; c.lineWidth = 6; c.lineCap = 'round'; c.beginPath(); c.moveTo(X(0), y); c.lineTo(X(vmax), y); c.stroke();
+      if (Math.abs(X(l.para) - X(l.de)) > 4) { c.strokeStyle = tom; c.lineWidth = 6; c.beginPath(); c.moveTo(X(l.de), y); c.lineTo(X(l.para), y); c.stroke(); }
+      c.lineCap = 'butt';
+      c.fillStyle = '#fff'; c.strokeStyle = tom; c.lineWidth = 3.5; c.beginPath(); c.arc(X(l.de), y, 10, 0, 7); c.fill(); c.stroke();
+      c.fillStyle = tom; c.beginPath(); c.arc(X(l.para), y, 6.5, 0, 7); c.fill();
+      // valores
+      c.textAlign = 'left'; c.font = `500 16px ${FONTE}`; c.fillStyle = '#486581';
+      const sDe = f1(l.de); c.fillText(sDe, xv, y);
+      const wd = c.measureText(sDe + '  →  ').width; c.fillText('→', xv + c.measureText(sDe + '  ').width, y);
+      c.font = `800 17px ${FONTE}`; c.fillStyle = '#102a43'; c.fillText(f1(l.para), xv + wd, y);
+      // variação publicada
+      const sinal = d => (d > 0 ? '+' : d < 0 ? '−' : '');
+      const d = l.va === undefined || l.va === null || isNaN(l.va) ? l.para - l.de : l.va, dTxt = `${sinal(d)}${RM.fmtVis({ tipo: 'taxa', casas: 1 }, Math.abs(d)).replace('%', '')} p.p.`;
+      const rot = l.estado === 'estavel' ? `estável  ${dTxt}` : l.estado === 'sem' ? 'sem comparação' : l.estado === 'sig0' ? 'significativa' : `${l.estado === 'aumentou' ? '▲' : '▼'}  ${dTxt}`;
+      c.fillStyle = est ? '#e5ecf1' : cor;
+      const r = 14, ch = 30, cy = y - ch / 2;
+      c.beginPath(); c.moveTo(xc + r, cy); c.arcTo(xc + wc, cy, xc + wc, cy + ch, r); c.arcTo(xc + wc, cy + ch, xc, cy + ch, r); c.arcTo(xc, cy + ch, xc, cy, r); c.arcTo(xc, cy, xc + wc, cy, r); c.fill();
+      c.textAlign = 'center'; c.font = `700 15px ${FONTE}`; c.fillStyle = est ? '#486581' : '#fff'; c.fillText(rot, xc + wc / 2, y + 1);
     });
+    // chave de cores
+    c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = `13px ${FONTE}`;
+    let lx = xr; const ly = m.base - 12;
+    for (const [rot, fundo] of [['significativa, favorável', U.COR.bom], ['significativa, desfavorável', U.COR.ruim], ['estável / sem comparação', MOLDURA.COR.estavel]]) {
+      c.fillStyle = fundo; c.beginPath(); c.arc(lx + 7, ly, 6, 0, 7); c.fill(); c.fillStyle = '#486581'; c.fillText(rot, lx + 20, ly); lx += c.measureText(rot).width + 54;
+    }
     return m.cv;
   }
   function desenharTabela(spec) {

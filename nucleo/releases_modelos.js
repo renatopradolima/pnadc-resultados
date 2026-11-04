@@ -1380,8 +1380,8 @@ const RELEASE_MODELOS = (() => {
     }
     if (V.halteres && !t.conjunto) {
       const taxas = F.itens.filter(y => y.ind.tipo === 'taxa' && !vazio(y.v0Ano) && E.comparar.ano);
-      if (taxas.length) out.push({ id: 'halteres', tipo: 'halteres', titulo: `${t.nome}: ${perCurto(perAnoAnt(F.per), F.fam)} × ${perCurto(F.per, F.fam)}`, subtitulo: 'Taxas, em %; ponto cheio = período atual; mesma cor e "estável" quando a variação não é significativa', fonte,
-        linhas: taxas.map(y => ({ rotulo: y.ind.rotulo, de: y.v0Ano, para: y.v, estado: y.dirAno, sentido: y.ind.sentido })), perDe: perCurto(perAnoAnt(F.per), F.fam), perPara: perCurto(F.per, F.fam),
+      if (taxas.length) out.push({ id: 'halteres', tipo: 'halteres', titulo: `${t.nome}: ${perCurto(perAnoAnt(F.per), F.fam)} × ${perCurto(F.per, F.fam)}`, subtitulo: 'Taxas, em %, na mesma escala. Cor só quando o IBGE publica variação significativa; senão, "estável"', fonte,
+        linhas: taxas.map(y => ({ rotulo: y.ind.rotulo, de: y.v0Ano, para: y.v, va: y.va, estado: y.dirAno, sentido: y.ind.sentido })), perDe: perCurto(perAnoAnt(F.per), F.fam), perPara: perCurto(F.per, F.fam),
         alt: `Gráfico de halteres ${t.de} comparando ${perCurto(perAnoAnt(F.per), F.fam)} e ${perCurto(F.per, F.fam)}: ` + taxas.map(y => `${y.ind.rotulo} de ${fmtVis(y.ind, y.v0Ano)} para ${fmtVis(y.ind, y.v)} (${({ aumentou: 'aumentou', diminuiu: 'diminuiu', estavel: 'estável' })[y.dirAno] || 'sem indicação de significância'})`).join('; ') + '.' });
     }
     if (V.tabela && !t.conjunto) {
