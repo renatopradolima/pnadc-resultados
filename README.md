@@ -11,7 +11,7 @@ arquivo só (`PNADC_Resultados.html`): abra com duplo clique no Edge ou no Chrom
 - Aviso de publicação nova do IBGE. Os dados vêm direto da API pública de agregados do IBGE (SIDRA) e ficam guardados no
   seu navegador; nada sai do seu computador além dos pedidos ao IBGE.
 
-Este programa não é um produto oficial do IBGE.
+Este programa não é um produto oficial do IBGE. Licença [MIT](LICENSE).
 
 ## Desenvolvimento
 

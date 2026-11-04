@@ -9,9 +9,7 @@ Guia do mantenedor. Nada aqui foi executado por ninguém além de você: o repos
    arquivos do SuperC** (`util.js`, `graficos.js`, `glossario.js`, `superc.css`) e cita o SIGC em comentários. Se a
    autorização não vier para o SuperC, há três saídas: (a) publicar sem `kit/` e sem o arquivo único, (b) trocar o `kit/`
    por uma camada própria, (c) não publicar o código e só distribuir o arquivo `PNADC_Resultados.html`.
-2. **Licença.** Escolha uma e crie o arquivo `LICENSE` na raiz. Sem licença, o código é público mas **ninguém pode usá-lo**.
-   Sugestões: **MIT** (a mais simples e permissiva) ou **Apache-2.0** (inclui concessão de patentes). O GitHub oferece
-   modelos em *Add file → Create new file → nome `LICENSE`* (aparece o botão *Choose a license template*).
+2. **Licença.** MIT, já criada em `LICENSE` (autoria: Renato Izolino Manoel Prado Lima, 2026). O Chart.js embutido também é MIT (ver `THIRD_PARTY_NOTICES.md`).
 3. **Nome e marca.** O projeto não é um produto oficial do IBGE e não usa o logotipo do IBGE (a marca do projeto é
    própria). Mantenha o aviso do README e não use a marca do IBGE no repositório, na página ou nas imagens.
 4. **E-mail dos commits.** O primeiro commit tem seu e-mail pessoal como autor. Para esconder, use o e-mail *noreply* do
