@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- PNADC Resultados @@VERSAO@@ · gerado em @@DATA@@.
+     COMO USAR: dê duplo clique neste arquivo (Edge ou Chrome). Não precisa instalar nada, nem servidor, nem login.
+     Precisa de internet só para buscar os números na API pública do IBGE; depois tudo fica guardado no navegador.
+     Dados: servicodados.ibge.gov.br (SIDRA). Nada sai do seu computador além dos pedidos ao IBGE. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PNADC Resultados</title>
+<style>
+/*@@CSS@@*/
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topo">
+    <button class="btn icone btn-menu" id="btn-menu" title="Recolher / abrir o menu" aria-label="Recolher ou abrir o menu" aria-expanded="true"><span data-icone="menu" data-ic-tam="20"></span></button>
+    <a class="marca" href="#/publicacoes?sec=uf" style="text-decoration:none">
+      <h1>PNADC Resultados <small>Os números que o IBGE divulga da PNAD Contínua</small></h1>
+    </a>
+    <div class="espaco"></div>
+    <label class="uf-escolha" for="seletor-uf">UF em destaque <select id="seletor-uf" aria-label="UF em destaque"></select></label>
+    <div class="status" id="status-topo"></div>
+  </header>
+
+  <nav class="nav" id="nav">
+    <a href="#/publicacoes?sec=uf" data-pagina="publicacoes"><span class="ico" data-icone="publicacao"></span>Resultados</a>
+    <a href="#/publicacoes?sec=release&amp;passo=1" data-pagina="release"><span class="ico" data-icone="documento"></span>Gerar release</a>
+    <a href="#/sobre" data-pagina="sobre"><span class="ico" data-icone="livro"></span>Sobre</a>
+    <div class="rodape" id="nav-rodape"></div>
+  </nav>
+
+  <main class="principal">
+    <div id="dica-uso" hidden></div>
+    <div id="aviso-armazenamento" hidden></div>
+    <div class="conteudo" id="conteudo"><div class="vazio">Carregando…</div></div>
+  </main>
+</div>
+<div class="fundo-menu" id="fundo-menu"></div>
+<div class="toasts" id="toasts"></div>
+<noscript><p style="padding:16px">Este arquivo precisa de JavaScript para funcionar.</p></noscript>
+<script>
+/*@@JS@@*/
+</script>
+<script>CASCA.iniciar();</script>
+</body>
+</html>

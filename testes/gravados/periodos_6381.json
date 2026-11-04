@@ -1,0 +1,26 @@
+[
+ {
+  "id": "202606",
+  "literals": [
+   "abr-mai-jun 2026",
+   "abr-mai-jun de 2026"
+  ],
+  "modificacao": "30/07/2026"
+ },
+ {
+  "id": "202607",
+  "literals": [
+   "mai-jun-jul 2026",
+   "mai-jun-jul de 2026"
+  ],
+  "modificacao": "27/08/2026"
+ },
+ {
+  "id": "202608",
+  "literals": [
+   "jun-jul-ago 2026",
+   "jun-jul-ago de 2026"
+  ],
+  "modificacao": "29/09/2026"
+ }
+]

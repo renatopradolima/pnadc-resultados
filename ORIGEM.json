@@ -1,0 +1,50 @@
+{
+  "distribuicao": {
+    "arquivo_superc": "app/PNADC_Resultados.html"
+  },
+  "grupos": {
+    "kit": {
+      "aqui": "kit",
+      "arquivos": [
+        "js/util.js",
+        "js/glossario.js",
+        "js/graficos.js",
+        "css/superc.css",
+        "vendor/chart.umd.min.js"
+      ],
+      "dono": "SuperC"
+    },
+    "nucleo": {
+      "aqui": "nucleo",
+      "carregar_no_superc": [
+        "versao.js",
+        "releases_modelos.js",
+        "publicacoes.js",
+        "novidades.js",
+        "releases.js"
+      ],
+      "dono": "PNADC_Resultados",
+      "padrao": "*.js",
+      "superc": "app/js/resultados"
+    }
+  },
+  "hashes": {
+    "kit/css/superc.css": "a09fa305b134374606019e8126d908f1561700bbf315879edc2ae09a22eee7bf",
+    "kit/js/glossario.js": "3a82df71c99dc17d0189e2ec7d20c3aca5f4a472c4842b98f06d93158bf0f5cc",
+    "kit/js/graficos.js": "e11b3bde71de1869f53a46dd1cbc13f9e1a59390bfeac64359f2c94e5f744dec",
+    "kit/js/util.js": "84df3bf4dbb509c75fba070aec7151aa79d4d8c539e4ed14d4e974cfec5bf9dc",
+    "kit/vendor/chart.umd.min.js": "81ffafe13c37e1b25793b020d446f4d9739b949dadb7f9f79d709a0cad781c2f",
+    "nucleo/armazem.js": "d274be848fa109c230306272e7822d951d99a775e94cc01afb3a077bfc7684d9",
+    "nucleo/indicadores.js": "9db767d4f6bde6d5f6efa3caf9ec5c8f3228662164555784107636d6b6246b3f",
+    "nucleo/montar.js": "b4d3352ca9123413e785eb743fcd5a0f7387b82428cb0b1eb9c2581cffb42c1d",
+    "nucleo/novidades.js": "c15feb9e60e4b23ff9d93283dfdf7ddfd7a27a8388e1255a10b3ca3771817020",
+    "nucleo/publicacoes.js": "8301472163805e89edf15983b41abdc81bc3221a67636a003859a0bca56528df",
+    "nucleo/releases.js": "a2af20239afaaa1ef5bfc27f084427d7e38ab3f8e7da71ffff62421e53d298a1",
+    "nucleo/releases_modelos.js": "933a6f2b92712bea528c36efc042b863155b0dc65639d46e1d475420c7a66d4b",
+    "nucleo/sidra.js": "96867f493ec2f70533c109e50e81a14f97fd94894e3b808ed7b677eb13441526",
+    "nucleo/versao.js": "da0951c981f49e080297677cf6f6ea7a7daf19e7c06dd1dc21a458d4facfea7b"
+  },
+  "indice_superc": "app/index.html",
+  "superc": "C:/Projetos/SuperC",
+  "versao": 1
+}

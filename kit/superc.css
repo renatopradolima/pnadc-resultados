@@ -1,0 +1,1690 @@
+/* SuperC -- Sistema de Supervisão da Coleta
+   Tema claro, denso, orientado a painel de supervisão. Paleta: azul
+   institucional para ação/seleção, verde-claro de fundo herdado do BI de
+   referência (prints em "Telas BI"), cinzas neutros para texto. */
+:root {
+  --fundo: #eef6e9;
+  --fundo-2: #f7fbf4;
+  --cartao: #ffffff;
+  --borda: #d5e0cf;
+  --texto: #1f2a24;
+  --texto-2: #5a6a60;
+  --azul: #1a56c4;
+  --azul-escuro: #12408f;
+  --azul-claro: #e3ecfb;
+  --verde: #2e9e5b;
+  --vermelho: #d8392b;
+  --laranja: #f08c00;
+  --roxo: #7b3fa0;
+  --cinza: #8a938d;
+  --sombra: 0 1px 3px rgba(20, 40, 30, .12), 0 4px 14px rgba(20, 40, 30, .06);
+  --raio: 10px;
+  --nav-largura: 200px;
+  --fonte: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: Consolas, "Cascadia Mono", "Courier New", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--fonte); font-size: 13.5px; color: var(--texto); background: var(--fundo); overflow: hidden; }
+a { color: var(--azul); }
+button, select, input { font: inherit; }
+
+/* ---------------------------------------------------------------- layout */
+.app { display: grid; grid-template-columns: var(--nav-largura) minmax(0, 1fr); grid-template-rows: 54px 1fr; height: 100dvh; min-height: 100vh; }
+/* Empilhamento: o Leaflet põe os painéis do mapa em z-index 400 e os
+   controles em 800. Barra de filtros, menu e cabeçalho precisam ficar ACIMA
+   disso, senão a janela de um filtro abre ATRÁS do mapa (achado do usuário,
+   10/09/2026). Cada um cria o próprio contexto de empilhamento, então os
+   z-index internos (ex.: .filtro .painel) continuam pequenos. */
+.topo { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: #fff; border-bottom: 1px solid var(--borda); box-shadow: 0 1px 4px rgba(0,0,0,.05); position: relative; z-index: 1200; }
+.topo .marca { display: flex; align-items: center; gap: 10px; }
+.topo .logo { width: 40px; height: 40px; border-radius: 50%; background: #0c1116; padding: 2px; }
+.selo-inicio { position: relative; width: 150px; height: 150px; margin: 0 auto 8px; border-radius: 50%; background: radial-gradient(circle, #0c1116 62%, #05070a 100%); box-shadow: 0 0 0 1px rgba(63,176,194,.25), 0 6px 20px rgba(20,40,30,.18); }
+.selo-inicio svg, .selo-inicio canvas { position: absolute; inset: 6%; width: 88%; height: 88%; }
+.selo-inicio a.ver-animacao { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); font-size: 11px; white-space: nowrap; color: var(--texto-2); }
+.topo h1 { font-size: 16px; margin: 0; font-weight: 700; color: var(--azul-escuro); line-height: 1.1; }
+.topo h1 small { display: block; font-size: 11px; font-weight: 500; color: var(--texto-2); }
+.topo .espaco { flex: 1; }
+.topo .status { font-size: 12px; color: var(--texto-2); text-align: right; line-height: 1.2; }
+.topo .status b { color: var(--texto); font-weight: 600; }
+.topo .botoes { display: flex; gap: 6px; }
+
+.nav { background: #fff; border-right: 1px solid var(--borda); padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; position: relative; z-index: 1100; }
+.nav a { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; text-decoration: none; color: var(--texto); font-weight: 500; font-size: 13px; }
+.nav a:hover { background: var(--fundo-2); }
+/* `display: flex` do estilo do autor vence o `[hidden]` do navegador:
+   sem esta linha, esconder item de menu por permissão não surtia efeito */
+.nav a[hidden] { display: none; }
+/* e vale para QUALQUER elemento: botão, aviso e linha escondidos por
+   `hidden` reapareciam quando uma regra de classe lhes dava display */
+[hidden] { display: none !important; }
+.nav a.ativo { background: var(--azul-claro); color: var(--azul-escuro); font-weight: 700; }
+.nav a .ico { width: 20px; text-align: center; font-size: 15px; opacity: .85; }
+.nav .grupo { font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; color: var(--texto-2); padding: 12px 10px 4px; font-weight: 700; }
+.nav .rodape { margin-top: auto; padding: 10px; font-size: 11px; color: var(--texto-2); line-height: 1.4; }
+
+.principal { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.filtros { background: #fff; border-bottom: 1px solid var(--borda); padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; position: relative; z-index: 1000; }
+.conteudo { flex: 1; overflow: auto; padding: 14px; position: relative; z-index: 1; }
+.conteudo > * { max-width: none; }
+/* Texto corrido (Metodologia) com largura de leitura: linha de 200 caracteres
+   num monitor de 32 polegadas não se lê (decisão do usuário, 17/09/2026). */
+.conteudo.texto-longo > * { max-width: 1100px; }
+
+/* ---------------------------------------------------------------- filtros */
+.filtro { position: relative; }
+.filtro > button { display: flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--borda); background: #fff; border-radius: 7px; cursor: pointer; font-size: 12.5px; color: var(--texto); max-width: 260px; }
+.filtro > button:hover { border-color: #b8c8b0; }
+.filtro > button .rot { color: var(--texto-2); font-weight: 600; }
+.filtro > button .val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtro > button.ativo { border-color: var(--azul); background: var(--azul-claro); color: var(--azul-escuro); }
+.filtro > button .n { background: var(--azul); color: #fff; border-radius: 10px; padding: 0 6px; font-size: 11px; font-weight: 700; }
+.filtro .painel { display: none; position: absolute; top: 100%; left: 0; z-index: 50; margin-top: 4px; background: #fff; border: 1px solid var(--borda); border-radius: 9px; box-shadow: var(--sombra); width: 300px; max-height: 380px; overflow: hidden; flex-direction: column; }
+.filtro.aberto .painel { display: flex; }
+.filtro .painel input { margin: 8px; padding: 6px 8px; border: 1px solid var(--borda); border-radius: 6px; }
+.filtro .painel .opcoes { overflow-y: auto; padding: 0 4px 6px; }
+.filtro .painel label { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 12.5px; }
+.filtro .painel label:hover { background: var(--fundo-2); }
+.filtro .painel label .cont { margin-left: auto; color: var(--texto-2); font-size: 11px; }
+.filtro .painel .acoes { display: flex; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--borda); }
+/* filtros salvos (21/09/2026): o mesmo botão e o mesmo painel dos filtros,
+   visível também com a barra recolhida -- é quando mais se usa um atalho */
+.filtro.salvos > button .rot { color: var(--azul); }
+.filtro.salvos.tem-ativo > button { border-color: var(--azul); background: var(--azul-claro); color: var(--azul-escuro); }
+.filtro .painel.painel-salvos { width: 360px; max-height: 460px; }
+.painel-salvos .cab-salvos { padding: 8px 10px 4px; font-size: 13px; }
+.painel-salvos .lista-salvos { padding: 2px 6px 6px; }
+.painel-salvos .salvo { display: flex; align-items: center; gap: 4px; padding: 3px 2px; border-radius: 6px; }
+.painel-salvos .salvo.atual { background: var(--azul-claro); }
+.painel-salvos .salvo .aplicar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  border: 0; background: none; text-align: left; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 12.5px; color: var(--texto); }
+.painel-salvos .salvo .aplicar:hover { background: var(--fundo-2); }
+.painel-salvos .resumo-salvo { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.painel-salvos .form-salvo { border-top: 1px solid var(--borda); padding: 6px 0 0; }
+.painel-salvos .form-salvo > .mini-info, .painel-salvos .form-salvo > label { display: block; padding: 0 10px; }
+.painel-salvos .form-salvo input:not([type=checkbox]) { width: calc(100% - 16px); box-sizing: border-box; }
+@media (max-width: 1000px) { .filtro .painel.painel-salvos { width: auto; } }
+.filtros .busca { display: flex; align-items: center; gap: 6px; border: 1px solid var(--borda); border-radius: 7px; padding: 4px 8px; background: #fff; }
+.filtros .busca { flex: 1 1 200px; min-width: 0; max-width: 340px; }
+.filtros .busca input { border: 0; outline: 0; width: 100%; min-width: 0; font-size: 12.5px; }
+.filtros .limpar { margin-left: auto; }
+/* Página com poucos filtros (a tela inicial: agência, e a UF quando há mais
+   de uma) não tem o que recolher, então a barra ficava SEMPRE aberta -- e uma
+   faixa branca de ponta a ponta, com borda, para um botão só (achado do
+   usuário, 19/09/2026). Aqui ela deixa de ser faixa: fundo da página, sem
+   borda, encostada à direita, acima do conteúdo. É a MESMA barra e o mesmo
+   estado -- só para de se anunciar como seção. */
+body.filtros-sem-recolher .filtros { background: none; border-bottom: 0;
+  padding: 6px 14px 2px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 14px; font-size: 12px; background: var(--azul-claro); color: var(--azul-escuro); border: 1px solid #c7d7f5; cursor: pointer; }
+.chip.ativo { background: var(--azul); color: #fff; border-color: var(--azul); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Abas de seção (página Abordagens, 19/09/2026): são `.chip` -- a forma que o
+   sistema já usa para ligar/desligar -- mas cada uma é um LINK, porque a
+   seção mora na URL. Alvo de toque maior que o chip comum: aqui se navega. */
+.abas-secao .chip { padding: 7px 13px; font-size: 12.5px; font-weight: 600; text-decoration: none; gap: 7px; }
+.abas-secao .chip svg { opacity: .85; }
+.abas-secao .chip.ativo { box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
+.abas-secao .n-alerta { background: var(--vermelho); color: #fff; border-radius: 10px;
+  padding: 0 6px; font-size: 11px; font-weight: 700; }
+.abas-secao .chip.ativo .n-alerta { background: #fff; color: var(--vermelho); }
+/* Faixa de ações fora das abas (página Dados): o estado à esquerda e o botão
+   que resolve à direita. Fica FORA da rolagem das seções porque a ação que
+   ela oferece -- processar a pasta -- vale em qualquer aba. */
+.barra-acoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio);
+  padding: 8px 12px; box-shadow: var(--sombra); }
+.barra-acoes > .mini-info { margin-right: auto; }
+@media (max-width: 700px) { .barra-acoes > .mini-info { margin-right: 0; flex: 1 1 100%; } }
+@media (max-width: 700px) { .abas-secao .chip { padding: 9px 12px; } }
+
+/* ---------------------------------------------------------------- botões */
+.btn.icone { font-size: 16px; line-height: 1; padding: 6px 10px; }
+.btn.icone.girando { animation: girar 1.6s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; border: 1px solid var(--borda); background: #fff; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--texto); }
+.btn:hover { background: var(--fundo-2); }
+.btn.primario { background: var(--azul); border-color: var(--azul); color: #fff; }
+.btn.primario:hover { background: var(--azul-escuro); }
+.btn.perigo { color: var(--vermelho); }
+.btn.pequeno { padding: 3px 8px; font-size: 12px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--borda); border-radius: 7px; overflow: hidden; }
+.seg button { padding: 5px 10px; border: 0; background: #fff; cursor: pointer; font-size: 12.5px; }
+.seg button.ativo { background: var(--azul); color: #fff; }
+/* rótulo no meio de um ◀ ▶: é um `button` desabilitado para herdar a
+   caixa dos vizinhos, mas não deve parecer apagado nem clicável */
+.seg button.rot-mes { font-weight: 700; color: var(--texto); background: var(--fundo-2);
+  opacity: 1; cursor: default; min-width: 76px; text-align: center; }
+.seg button[disabled]:not(.rot-mes) { opacity: .35; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------- cartões e grades */
+.grade { display: grid; gap: 12px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.g23 { grid-template-columns: 2fr 1fr; }
+.g32 { grid-template-columns: 3fr 2fr; }
+@media (max-width: 1250px) { .g4, .g6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g23, .g32 { grid-template-columns: 1fr; } }
+.cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); padding: 12px 14px; box-shadow: var(--sombra); min-width: 0; }
+.cartao h3 { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--texto-2); text-transform: uppercase; letter-spacing: .4px; display: flex; align-items: center; gap: 8px; }
+.cartao h3 .dir { margin-left: auto; font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 12px; }
+/* botão % / nº no cabeçalho do cartão: menor que o segmentado das páginas */
+.cartao h3 .dir .seg button { padding: 2px 8px; font-size: 11.5px; font-weight: 600; }
+.cartao .ajuda { font-size: 11.5px; color: var(--texto-2); margin-top: 6px; }
+/* Procedência do dado (de que relatório do SIGC saiu e quando entrou).
+   Fica no rodapé do cartão, discreta mas sempre presente: número sem origem
+   não dá para conferir (pedido do usuário, 15/09/2026). */
+.fonte-dado { font-size: 11px; color: var(--texto-2); margin-top: 6px; padding-top: 5px;
+  border-top: 1px dashed var(--borda); line-height: 1.5; }
+.fonte-dado .rot { text-transform: uppercase; letter-spacing: .4px; font-size: 10px; opacity: .8; }
+.fonte-dado .ausente { color: var(--vermelho); }
+.fonte-dado .mini-info { font-size: 10.5px; }
+.faixa-fonte { font-size: 11.5px; color: var(--texto-2); background: var(--fundo-2);
+  border: 1px solid var(--borda); border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; }
+.faixa-fonte .fonte-dado { border-top: 0; margin: 0; padding: 0; }
+.kpi { text-align: center; padding: 10px 8px; }
+.kpi .valor { font-size: 28px; font-weight: 800; color: var(--azul-escuro); line-height: 1.1; }
+.kpi .rotulo { font-size: 11.5px; color: var(--texto-2); text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; }
+.kpi .sub { font-size: 12px; color: var(--texto-2); margin-top: 3px; }
+.kpi.verde .valor { color: var(--verde); }
+.kpi.vermelho .valor { color: var(--vermelho); }
+.kpi.laranja .valor { color: var(--laranja); }
+.kpi.cinza .valor { color: var(--cinza); }
+.grafico { position: relative; height: 260px; }
+.grafico.alto { height: 340px; }
+.grafico.baixo { height: 200px; }
+.grafico.mini { height: 150px; }
+.secao-titulo { display: flex; align-items: center; gap: 10px; margin: 6px 0 12px; }
+.secao-titulo h2 { margin: 0; font-size: 18px; font-weight: 800; color: var(--azul-escuro); }
+.secao-titulo p { margin: 0; color: var(--texto-2); font-size: 12.5px; }
+.secao-titulo .dir { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.vazio { padding: 30px; text-align: center; color: var(--texto-2); }
+.aviso { background: #fff6dc; border: 1px solid #f0d58a; color: #6b4d00; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; }
+.aviso.erro { background: #fde8e6; border-color: #f2b1ab; color: #7a1f16; }
+.aviso.ok { background: #e6f6ec; border-color: #a9dfbd; color: #155a30; }
+.legenda { display: flex; flex-wrap: wrap; gap: 5px 12px; font-size: 11.5px; color: var(--texto-2); margin-top: 6px; }
+.legenda span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--cor); margin-right: 5px; vertical-align: -1px; }
+
+/* ---------------------------------------------------------------- tabelas */
+.tabela-wrap { overflow: auto; max-height: min(460px, 52vh); border: 1px solid var(--borda); border-radius: 8px; overscroll-behavior-x: contain; }
+.tabela-wrap.alta { max-height: min(760px, 68vh); }
+table.tabela { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+table.tabela th { position: sticky; top: 0; background: var(--azul-escuro); color: #fff; text-align: left; padding: 6px 8px; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; z-index: 1; }
+table.tabela th.num, table.tabela td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.tabela th .ord { opacity: .6; font-size: 10px; margin-left: 4px; }
+table.tabela td { padding: 5px 8px; border-bottom: 1px solid #edf2ea; white-space: nowrap; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
+table.tabela td.quebra { white-space: normal; }
+table.tabela tr.clicavel { cursor: pointer; }
+table.tabela tfoot td { font-weight: 700; background: var(--fundo-2); position: sticky; bottom: 0; }
+/* PRIMEIRA COLUNA CONGELADA, em qualquer largura (pedido do usuário,
+   19/09/2026: "essa tabela não está com boa legibilidade"). A regra existia
+   só até 1000 px, mas o problema não é de tela pequena e sim de tabela LARGA:
+   o Aproveitamento por entrevistador tem 14 colunas, e no monitor grande,
+   rolado para a direita, ficavam quinze números sem o nome de quem são.
+   Mesmo padrão já usado em `.matriz-dias` e `.matriz-transicao`. O cabeçalho
+   já é sticky no topo, então o canto superior esquerdo -- e o canto do
+   rodapé, que é sticky embaixo -- precisam de z-index maior que os dois. */
+table.tabela thead th:first-child, table.tabela tbody td:first-child, table.tabela tfoot td:first-child {
+  position: sticky; left: 0; z-index: 2; box-shadow: 1px 0 0 var(--borda); }
+table.tabela thead th:first-child { z-index: 3; }
+table.tabela tfoot td:first-child { z-index: 3; }
+
+/* FAIXA ALTERNADA (pedido do usuário, 19/09/2026: "uma leve sombra alternada
+   nas linhas de todas as exibições de tabelas, para facilitar a leitura").
+   Com colunas de altura desigual -- uma observação longa ao lado de células
+   de uma linha -- o olho perde a linha no meio do caminho e lê o número de
+   outra pessoa. O tom é de propósito quase imperceptível: a faixa serve para
+   guiar o olho, não para competir com o semáforo de cor, que é quem carrega
+   juízo nesta aplicação.
+   A PRIMEIRA COLUNA é congelada e precisa de fundo OPACO (senão o que passa
+   por baixo aparece), então ela acompanha a faixa em vez de ser sempre
+   branca -- do contrário a zebra teria um furo na coluna da esquerda.
+   As MATRIZES ficam fora: a cor das células delas é escala de intensidade
+   (mapa de calor), e uma faixa por baixo falsearia a leitura. */
+table.tabela:not(.matriz-transicao):not(.matriz-dias) tbody tr:nth-child(odd) td { background: #fff; }
+table.tabela:not(.matriz-transicao):not(.matriz-dias) tbody tr:nth-child(even) td { background: #f6f9f3; }
+/* a coluna congelada das matrizes continua opaca, sem faixa */
+table.matriz-transicao tbody td:first-child, table.matriz-dias tbody td:first-child { background: #fff; }
+/* o realce do mouse vence a faixa: vem depois e é mais específico */
+table.tabela tbody tr:hover td { background: var(--fundo-2); }
+table.tabela tbody tr.sel td, table.tabela tbody tr[aria-selected="true"] td { background: var(--azul-claro); }
+.tabela-rodape { display: flex; align-items: center; gap: 10px; padding: 6px 2px; font-size: 12px; color: var(--texto-2); }
+.tabela-rodape .dir { margin-left: auto; display: flex; gap: 6px; }
+.ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+table.matriz td.num { text-align: center; font-size: 15px; }
+table.matriz th.num { text-align: center; }
+table.matriz td:first-child { max-width: 340px; white-space: normal; }
+.selo { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #eee; }
+.selo.ok { background: #dff3e6; color: #155a30; }
+.selo.ruim { background: #fde3e0; color: #7a1f16; }
+.selo.neutro { background: #e9edf5; color: #2f3f66; }
+.selo.alerta { background: #fff1d6; color: #6b4d00; }
+/* Supervisão da agência / Painel da UPA (Plano de Supervisão do GT, 15/09/2026) */
+.lista-rotina { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.7; }
+.lista-pend { margin: 0 0 8px; padding-left: 18px; font-size: 12.5px; line-height: 1.6; }
+.lista-sup { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; }
+.lista-sup .texto { color: var(--texto); margin: 1px 0 3px; white-space: pre-wrap; }
+.form-sup .linha-form { display: grid; grid-template-columns: 120px 1fr; gap: 6px 10px; align-items: start; margin-bottom: 8px; font-size: 12.5px; }
+.form-sup .campo { width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; }
+
+/* -------------------------------------- ferramentas de campo (18/09/2026)
+   GPS e foto no registro; galeria de conquistas na página "Minha Jornada". */
+.chip-gps { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 12px; font-size: 12px; background: var(--fundo-2); color: var(--texto-2); border: 1px solid var(--borda); }
+.chip-gps.ok { background: #dff3e6; color: #155a30; border-color: #b9e2c6; }
+.chip-gps.erro { background: #fde3e0; color: #7a1f16; border-color: #f2b1ab; }
+.chip-gps .acao { margin-left: 4px; }
+/* `a.acao` = link de AÇÃO sem href ("registrar", "justificar", "✕ retirar",
+   "detalhes do domicílio" -- 24 usos): sem regra própria saía sem mãozinha, sem
+   sublinhado e com 11 px de alvo numa ação que apaga (revisão de usabilidade,
+   19/09/2026). */
+a.acao { cursor: pointer; color: var(--azul, #1864ab); text-decoration: underline; text-underline-offset: 2px;
+  display: inline-block; padding: 2px 4px; border-radius: 4px; }
+a.acao:hover { background: rgba(24, 100, 171, .10); }
+a.acao:focus-visible, .cartao-coleta:focus-visible, .busca input:focus-visible { outline: 2px solid var(--azul, #1864ab); outline-offset: 2px; }
+@media (max-width: 700px) { a.acao { padding: 8px 8px; min-width: 32px; text-align: center; } }
+.anexo-foto { display: flex; align-items: center; gap: 8px; }
+.anexo-foto .miniatura { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--borda); background: var(--fundo-2); }
+.anexo-foto .estado { font-size: 12px; color: var(--texto-2); }
+/* Mapa dentro do formulário de registro (19/09/2026): posição do
+   supervisor, endereço CNEFE e tentativas do domicílio, sem sair do
+   formulário. Altura fixa -- o Leaflet precisa de um tamanho definido
+   para desenhar. */
+.mapa-form { height: 200px; border-radius: 8px; overflow: hidden; border: 1px solid var(--borda); margin-bottom: 6px; }
+.legenda-mapa-form { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 11.5px; color: var(--texto-2); margin-bottom: 8px; }
+.legenda-mapa-form .item { display: inline-flex; align-items: center; gap: 4px; }
+.legenda-mapa-form i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px var(--borda); }
+
+.nivel-cabecalho { padding: 12px 14px; }
+.nivel-linha { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.pontos-jornada { font-size: 20px; font-weight: 800; color: var(--azul-escuro); }
+.chip-streak { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 12px; font-size: 12.5px; font-weight: 700; background: #fff1d6; color: #6b4d00; }
+.barra-progresso { height: 8px; border-radius: 5px; background: var(--fundo-2); border: 1px solid var(--borda); overflow: hidden; margin: 4px 0; }
+.barra-progresso.grande { height: 12px; }
+.barra-progresso .preenchido { height: 100%; background: var(--azul); border-radius: 5px; transition: width .3s ease; }
+
+.grade-conquistas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.conquista { border: 1px solid var(--borda); border-radius: var(--raio); padding: 10px; text-align: center; background: var(--fundo-2); filter: grayscale(70%); opacity: .65; }
+.conquista.desbloqueada { background: #fff; border-color: #f2d98b; box-shadow: 0 0 0 1px #f2d98b inset; filter: none; opacity: 1; }
+.conquista .icone { font-size: 30px; line-height: 1.2; }
+.conquista .nome { font-weight: 700; font-size: 12.5px; margin: 3px 0 2px; }
+.conquista .desc { font-size: 11.5px; color: var(--texto-2); margin-bottom: 6px; min-height: 28px; }
+
+.lista-mural { margin: 0; padding-left: 22px; font-size: 13px; line-height: 1.9; }
+.lista-mural li.eu { font-weight: 700; color: var(--azul-escuro); }
+
+/* Toast de conquista desbloqueada: mesma caixa do toast comum, com um
+   destaque dourado para diferenciar de um aviso qualquer. */
+.toast.conquista { background: linear-gradient(135deg, #fff7e0, #fff); border: 1px solid #f2d98b; color: #6b4d00; font-weight: 700; box-shadow: 0 4px 16px rgba(178, 137, 0, .25); }
+.indicador { padding: 6px 8px; border: 1px solid var(--borda); border-radius: 6px; margin-bottom: 6px; background: #fff; font-size: 12.5px; }
+.indicador.ativo { border-color: #f2b1ab; background: #fff7f6; }
+.indicador .cab { margin-bottom: 2px; }
+/* Painel da Coleta: hierarquia de cartões UF > agência > UPA > domicílio.
+   A cor da borda esquerda é o NÍVEL (semáforo); a cor do tipo fica no chip. */
+.barra-painel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.seletor-mes { display: inline-flex; align-items: center; gap: 6px; }
+.seletor-mes .mes { font-size: 16px; font-weight: 800; color: var(--azul-escuro); min-width: 120px; text-align: center; }
+.semanas-botoes { display: inline-flex; align-items: center; gap: 4px; }
+.migalhas { font-size: 13px; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.migalhas a { font-weight: 600; text-decoration: none; }
+.migalhas .sep { color: var(--texto-2); padding: 0 2px; }
+.migalhas .subir { font-weight: 700; }
+.migalhas .subir[disabled] { opacity: .45; cursor: default; }
+.cab-grade .voltar { font-size: 12.5px; font-weight: 600; }
+.rodape-nav { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--borda); }
+.legenda-niveis { display: flex; flex-wrap: wrap; gap: 4px 12px; width: 100%; }
+.cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.cartoes-dom { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.cab-grade { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.cab-grade h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .4px; color: var(--texto-2); }
+.cartao-coleta { border-left: 5px solid var(--borda); cursor: pointer; transition: box-shadow .15s; display: flex; flex-direction: column; gap: 6px; }
+.cartao-coleta:hover, .cartao-coleta:focus { box-shadow: 0 2px 10px rgba(0,0,0,.14); outline: none; }
+.cartao-coleta .cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.cartao-coleta .titulo { font-size: 14px; font-weight: 700; color: var(--azul-escuro); }
+.cartao-coleta .titulo .num { font-size: 20px; }
+.selo-nivel { display: inline-block; color: #fff; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
+.pilha { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #eee; }
+.pilha span { display: block; height: 100%; }
+.taxas { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 12px; color: var(--texto-2); }
+.taxas b { color: var(--azul-escuro); }
+.eixos { display: flex; flex-wrap: wrap; gap: 4px; }
+.eixos .chip { display: inline-flex; align-items: center; gap: 2px; font-size: 11.5px; font-weight: 700; border: 1.5px solid; border-radius: 10px; padding: 0 7px; background: #fff; }
+.eixos .chip .rot { font-weight: 500; }
+.placar { display: flex; align-items: center; gap: 3px; font-size: 11px; }
+.placar span:not(.mini-info) { color: #fff; font-weight: 700; padding: 0 6px; border-radius: 8px; }
+.tira-dom { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0; }
+.tira-dom span { width: 22px; height: 22px; border-radius: 4px; color: #fff; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; text-shadow: 0 0 2px rgba(0,0,0,.5); cursor: pointer; }
+.ig-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip-tipo { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 10px; vertical-align: middle; }
+.ciclo-mini { display: flex; gap: 3px; }
+.ciclo-mini span { width: 16px; height: 16px; border-radius: 50%; color: #fff; font-size: 9.5px; display: inline-flex; align-items: center; justify-content: center; text-shadow: 0 0 2px rgba(0,0,0,.6); }
+.ciclo-mini span.atual { box-shadow: 0 0 0 2px var(--azul-escuro); }
+.cartao-coleta .obs { font-style: italic; }
+.cartao-coleta .rodape { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.alertas-ficha { margin-bottom: 8px; }
+.alertas-ficha .cab-alertas { margin-bottom: 6px; }
+.barra { display: inline-block; height: 9px; border-radius: 4px; background: var(--azul); vertical-align: middle; }
+.barra-fundo { display: inline-block; width: 90px; height: 9px; border-radius: 4px; background: #e9eee6; vertical-align: middle; margin-right: 6px; overflow: hidden; }
+.barra-fundo .barra { display: block; height: 100%; border-radius: 0; }
+/* barra + número: bloco de largura fixa, para as barras de todas as linhas
+   começarem e terminarem na mesma coluna */
+.barra-cel { display: inline-flex; align-items: center; gap: 6px; }
+.barra-cel .barra-fundo { margin-right: 0; flex: none; }
+.barra-cel .barra-valor { min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- calendário */
+.calendario { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.calendario th { background: var(--fundo-2); padding: 6px; border: 1px solid var(--borda); font-weight: 700; color: var(--texto-2); }
+.calendario td { border: 1px solid var(--borda); padding: 0; height: 58px; vertical-align: top; width: 12.5%; }
+.calendario td.sem { background: var(--fundo-2); font-weight: 700; padding: 6px; vertical-align: middle; width: 90px; white-space: nowrap; }
+.calendario td.sem small { display: block; font-weight: 400; color: var(--texto-2); font-size: 11px; }
+.calendario .dia { display: flex; flex-direction: column; height: 100%; cursor: pointer; }
+.calendario .dia .num { font-size: 11px; padding: 3px 5px; color: var(--texto-2); }
+.calendario .dia .qtd { flex: 1; display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+.calendario .dia.foraMes { opacity: .45; }
+.calendario .dia.sel { outline: 2px solid var(--azul); outline-offset: -2px; }
+/* Subdivisão por turno (19/09/2026). A linha do total mantém os 58 px e o
+   número grande; as linhas de turno são baixas e discretas, senão quatro
+   turnos multiplicariam a tabela por cinco e o calendário deixaria de caber
+   na tela -- que é o que o torna útil de relance. */
+.calendario.com-turno td.sem { width: 82px; }
+.calendario td.turno-rot { background: var(--fundo-2); width: 62px; padding: 2px 6px; font-size: 10.5px;
+  color: var(--texto-2); white-space: nowrap; vertical-align: middle; text-align: right; }
+.calendario td.turno-rot.total { font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.calendario th.turno-cab { width: 62px; }
+.calendario tr.linha-turno td { height: 24px; }
+/* modo TURNO: a linha de cima traz só os números dos dias, baixa e sem cor --
+   é orientação, não dado. O total do dia vive no outro modo. */
+/* O NÚMERO DO DIA NÃO PODE PARECER UM VALOR (pedido do usuário, 19/09/2026:
+   "as células e os números correspondentes ao dia do mês devem receber cor,
+   formato, fonte, etc. com o destaque necessário para não se confundir com os
+   valores"). Ambos eram número escuro numa grade -- "8" de dia 8 e "8" de oito
+   abordagens liam-se igual.
+   Três separações de uma vez: a FILEIRA vira faixa escura de cabeçalho; o
+   número vira PASTILHA clara com borda, forma que nenhum valor tem; e a
+   tipografia é outra -- menor, com espaçamento, na cor de texto secundário,
+   contra o valor que é grande, escuro e sem moldura. */
+.calendario tr.linha-dias td { height: 24px; background: #e7eee2;
+  border-bottom: 2px solid var(--borda); padding: 0 4px; }
+.calendario .dia.so-num { justify-content: center; align-items: center; cursor: pointer; }
+.calendario .dia.so-num .num { padding: 0 7px; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .6px; color: var(--texto-2); background: #fff;
+  border: 1px solid var(--borda); border-radius: 9px; line-height: 15px; }
+.calendario .dia.so-num:hover .num { border-color: var(--azul); color: var(--azul-escuro); }
+.calendario .dia.so-num.sel .num { background: var(--azul); border-color: var(--azul); color: #fff; }
+.calendario td.turno-rot.dias { background: #e7eee2; border-bottom: 2px solid var(--borda); }
+/* A MESMA PASTILHA no modo "total do dia" (pedido do usuário, 20/09/2026).
+   Eu tinha resolvido só metade: no modo por turno o dia virou pastilha, mas
+   aqui continuou sendo número solto no canto -- e é justamente aqui que ele
+   divide a célula com o valor, contra um fundo de mapa de calor que vai do
+   branco ao azul escuro. Número cinza sobre azul escuro quase some; e onde se
+   lê, disputa com o valor, que é o que a célula está dizendo.
+   A moldura resolve os dois de uma vez: a pastilha branca se destaca de
+   qualquer tom da escala, e é forma que nenhum valor tem. Mesma regra dos
+   dois modos -- o dia se parece com o dia, esteja onde estiver. */
+.calendario tr.linha-total .dia .num { align-self: flex-start; margin: 3px 0 0 4px;
+  padding: 0 7px; font-size: 10.5px; font-weight: 700; letter-spacing: .6px;
+  color: var(--texto-2); background: #fff; border: 1px solid var(--borda);
+  border-radius: 9px; line-height: 15px; }
+.calendario tr.linha-total .dia:hover .num { border-color: var(--azul); color: var(--azul-escuro); }
+.calendario tr.linha-total .dia.sel .num { background: var(--azul); border-color: var(--azul); color: #fff; }
+.calendario .dia.turno { justify-content: center; }
+.calendario .dia.turno .qtd { font-size: 12px; font-weight: 700; color: var(--texto); }
+/* a semana inteira é um bloco: a borda forte separa uma semana da seguinte,
+   não o total do seu próprio turno */
+.calendario.com-turno tr.linha-total td { border-top: 2px solid var(--borda); }
+
+/* ---------------------------------------------------------------- mapa */
+.mapa-layout { display: grid; grid-template-columns: 280px 1fr; gap: 12px; height: calc(100vh - 54px - 52px - 28px); min-height: 520px; }
+.mapa-painel { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.mapa-painel .cartao { padding: 10px 12px; }
+.mapa-painel h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--texto-2); }
+.mapa-painel label { display: flex; align-items: center; gap: 7px; font-size: 12.5px; padding: 3px 0; cursor: pointer; }
+.mapa-painel select { width: 100%; padding: 5px; border: 1px solid var(--borda); border-radius: 6px; }
+#mapa { height: 100%; border-radius: var(--raio); border: 1px solid var(--borda); background: #dfe9f3; }
+.leaflet-popup-content { font-size: 12.5px; line-height: 1.45; }
+.leaflet-popup-content b { color: var(--azul-escuro); }
+.leaflet-container { font-family: var(--fonte); }
+/* etiqueta ao lado da abordagem: número do domicílio em destaque, hora miúda */
+.rot-abordagem { background: rgba(255,255,255,.88); border: 1px solid var(--borda); border-radius: 4px;
+  padding: 1px 4px; box-shadow: none; font-family: var(--fonte); line-height: 1.05; white-space: nowrap; }
+.rot-abordagem::before { display: none; }
+.rot-abordagem .rot-dom { display: block; font-size: 11px; font-weight: 700; color: var(--azul-escuro); }
+.rot-abordagem .rot-data { display: block; font-size: 9.5px; font-weight: 600; color: var(--texto); }
+.rot-abordagem .rot-hora { display: block; font-size: 8.5px; font-weight: 400; color: var(--texto-2); letter-spacing: .2px; }
+.icone-abordagem { background: none; border: 0; }
+.rot-abordagem.rot-sessao { border-left: 3px solid #7b3fa0; }  /* rótulo de sessão de entrevista */
+.rot-abordagem.rot-domicilio { border-left: 3px solid #1f2a24; }  /* rótulo do GPS da entrevista */
+.rot-abordagem.rot-referencia { font-size: 11px; font-weight: 600; white-space: nowrap; }  /* distância na linha ponto → CNEFE/setor */
+.rot-setor { font-family: Consolas, 'Courier New', monospace; font-size: 11.5px; font-weight: 600; }  /* geocódigo ao passar o mouse no setor */
+.legenda-mapa { background: #fff; padding: 8px 10px; border-radius: 8px; box-shadow: var(--sombra); font-size: 12px; max-width: 220px; }
+.legenda-mapa div { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
+.legenda-mapa i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.25); }
+
+/* ---------------------------------------------------------------- inicio */
+/* Início: só avisos e a síntese dos três últimos meses de coleta. O menu
+   de painéis e o cartão de última atualização saíram em 10/09/2026 --
+   repetiam a barra lateral e o cabeçalho. */
+/* Os três meses da tela inicial (pedido do usuário, 19/09/2026: "mais
+   baixos e com a mesma altura"). Dois defeitos somados:
+   1. `align-items: start` deixava cada cartão com a altura do seu conteúdo,
+      e o mês EM COLETA é sempre o mais alto -- só ele tem o esperado do dia
+      e o "mês em coleta" no aproveitamento. Três cartões lado a lado com
+      alturas diferentes leem-se como três coisas diferentes, e não são.
+   2. O KPI da tela inicial herdava o tamanho do KPI de painel, feito para
+      aparecer sozinho; aqui são seis por cartão, três vezes na tela.
+   `grid-auto-rows: 1fr` faz as duas fileiras de KPI dividirem a altura em
+   partes iguais, para o cartão esticado não ficar com um vazio no fim. */
+/* TRÊS COLUNAS, sempre: com `auto-fit` o notebook de 1366 px quebrava em
+   2+1 (faltavam 19 px para os 420 de mínimo) e o mês sozinho na segunda
+   fileira voltava a ter altura diferente -- a mesma queixa, por outro
+   caminho. Altura igual só vale DENTRO de uma fileira, então os três
+   meses precisam ficar na mesma. Abaixo de 1000 px o menu já é gaveta e
+   aí sim eles se reorganizam. */
+.inicio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.inicio > .cartao { display: flex; flex-direction: column; }
+.inicio > .cartao > .grade { flex: 1; grid-auto-rows: 1fr; gap: 8px; }
+.inicio .kpi { padding: 6px 6px; display: flex; flex-direction: column; justify-content: center; }
+.inicio .kpi .valor { font-size: 24px; }
+.inicio .kpi .rotulo { font-size: 10.5px; margin-top: 2px; }
+.inicio .kpi .sub { font-size: 11px; line-height: 1.3; margin-top: 2px; }
+.inicio-avisos { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+
+/* ---------------------------------------------------------------- diversos */
+.toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 3000; }
+.toast { background: #1f2a24; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px; box-shadow: var(--sombra); max-width: 420px; }
+.toast.ok { background: var(--verde); }
+.toast.erro { background: var(--vermelho); }
+.carregando { position: fixed; inset: 0; background: rgba(255,255,255,.7); display: grid; place-items: center; z-index: 2500; font-size: 15px; color: var(--azul-escuro); font-weight: 600; }
+.modal-fundo { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: grid; place-items: center; z-index: 2000; }
+
+/* ---------------------------------------------------------------- abertura
+   A animação do selo ocupa a tela inteira e, ao terminar, VOA até o logo do
+   cabeçalho (canto superior esquerdo), onde o selo já vive -- mesma ideia da
+   abertura do GEOMEMÓRIA. Roda uma vez por sessão do navegador. */
+.abertura { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; }
+.abertura-fundo { position: absolute; inset: 0; background:
+  radial-gradient(1100px 700px at 18% 12%, rgba(24,120,140,0.30), transparent 60%),
+  radial-gradient(900px 600px at 84% 82%, rgba(150,80,190,0.22), transparent 62%), #05070a;
+  transition: opacity .85s ease; }
+.abertura-cena { position: relative; width: min(66vmin, 560px); height: min(66vmin, 560px); will-change: transform; }
+.abertura-cena canvas, .abertura-cena svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.abertura-pular { position: fixed; right: 18px; bottom: 16px; background: transparent; color: #a8d4e2; border: 1px solid rgba(230,240,245,0.22); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+.abertura-pular:hover { border-color: #62c6d6; color: #e6f0f5; }
+.abertura-marca { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 10px); white-space: nowrap; text-align: center; opacity: 0; transition: opacity .5s; }
+.abertura-marca b { font-size: clamp(1.3rem, 3.6vmin, 2rem); font-weight: 700; letter-spacing: .01em;
+  background: linear-gradient(96deg, #eaf6fa 12%, #62c6d6 46%, #1c7f8f 88%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.abertura-marca span { display: block; font-size: 12px; color: #a8d4e2; margin-top: 3px; }
+.abrindo .topo .logo { visibility: hidden; }
+.modal { background: #fff; border-radius: 12px; padding: 16px 18px; width: min(920px, 94vw); max-width: 94vw; max-height: 90vh; overflow: auto; box-shadow: var(--sombra); }
+.modal h3 { margin: 0 0 10px; }
+.modal .fechar { float: right; }
+.par { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; font-size: 12.5px; }
+.par input { width: 110px; padding: 4px 6px; border: 1px solid var(--borda); border-radius: 6px; text-align: right; }
+/* `.mono` não tinha `white-space`: uma lista montada com `join('\A')` saía
+   GRUDADA numa linha só -- e é assim que a página Dados lista os arquivos que
+   precisam ser renomeados, justamente o texto que a pessoa vai copiar.
+   `pre-wrap` preserva a quebra e ainda deixa quebrar em tela estreita. */
+.mono { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+.pre { font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap; background: #f6f8f5; border: 1px solid var(--borda); border-radius: 8px; padding: 8px; max-height: 320px; overflow: auto; }
+.lista-simples { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; }
+.dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; font-size: 12.5px; }
+.dl dt { color: var(--texto-2); }
+.dl dd { margin: 0; }
+.destaque { color: var(--azul-escuro); font-weight: 700; }
+.mini-info { font-size: 11.5px; color: var(--texto-2); }
+.cor-a { color: var(--verde); } .cor-b { color: var(--laranja); } .cor-c { color: var(--vermelho); }
+kbd { font-family: var(--mono); font-size: 11px; background: #eef1ec; border: 1px solid var(--borda); border-radius: 4px; padding: 0 4px; }
+.hist-lote { border-left: 3px solid var(--azul-claro); padding: 4px 10px; margin-bottom: 8px; font-size: 12.5px; }
+.hist-lote b { color: var(--azul-escuro); }
+.icone-tipo { font-size: 13px; margin-right: 4px; }
+/* Matriz de transição entre entrevistas seguidas (painel Ciclo e fluxo) */
+.matriz-transicao th, .matriz-transicao td { text-align: center; padding: 4px 6px; white-space: nowrap; }
+.matriz-transicao thead th:first-child, .matriz-transicao tbody td:first-child { text-align: left; }
+.matriz-transicao td.clicavel { cursor: pointer; }
+.matriz-transicao td.clicavel:hover { outline: 2px solid var(--azul); }
+.matriz-transicao td.sel { outline: 3px solid var(--azul); font-weight: 700; }
+/* Primeira coluna congelada (pedido do usuário, 19/09/2026), o mesmo padrão
+   já usado na grade de dias da Produtividade: sem ela, ao rolar para ver as
+   últimas colunas some o nome da linha e não se sabe mais de que desfecho
+   aquele número está saindo. O cabeçalho já é sticky no topo (`table.tabela
+   th`), então o canto superior esquerdo precisa de z-index maior que os dois,
+   senão um cobre o outro ao rolar nas duas direções. */
+.matriz-transicao thead th:first-child, .matriz-transicao tbody td:first-child {
+  position: sticky; left: 0; z-index: 2; box-shadow: 1px 0 0 var(--borda); }
+.matriz-transicao tbody td:first-child { background: #fff; }
+.matriz-transicao tbody tr:hover td:first-child { background: var(--fundo-2); }
+.matriz-transicao thead th:first-child { z-index: 3; }
+
+/* Geocódigo clicável: leva ao mapa e enquadra a geometria */
+a.geo { color: var(--azul); text-decoration: none; border-bottom: 1px dotted var(--azul); cursor: pointer; font-family: var(--mono); font-size: .95em; }
+a.geo:hover { background: var(--azul-claro); }
+table.tabela a.geo { border-bottom: 0; }
+table.tabela a.geo:hover { text-decoration: underline; }
+
+/* Ciclo de entrevistas do domicílio (1ª a 5ª), na ficha do detalhe */
+.passo-ciclo { display: inline-flex; align-items: baseline; gap: 4px; margin: 2px 4px 2px 0; padding: 2px 8px;
+  border-radius: 10px; font-size: 11.5px; background: #f2f5f0; border-left: 4px solid var(--cor, var(--cinza)); }
+.passo-ciclo.atual { outline: 2px solid var(--azul); font-weight: 600; }
+/* Pastilha do ciclo que ABRE a ficha daquela onda (19/09/2026). Precisa
+   parecer acionável -- antes era texto com a mesma aparência da onda atual,
+   e nada dizia que dava para clicar. A que não tem ficha na janela carregada
+   fica visivelmente inerte, em vez de recusar o clique em silêncio. */
+.passo-ciclo.clicavel { cursor: pointer; }
+.passo-ciclo.clicavel:hover { background: var(--azul-claro); border-color: var(--azul); }
+.passo-ciclo.clicavel:focus-visible { outline: 2px solid var(--azul); outline-offset: 1px; }
+.passo-ciclo.inerte { opacity: .6; cursor: default; }
+.passo-ciclo i { color: var(--texto-2); font-style: normal; font-size: 10.5px; }
+.hist-dom { margin-bottom: 10px; }
+
+/* Cadastro de dias sem expediente (tela Dados e atualização) */
+.campo { padding: 5px 8px; border: 1px solid var(--borda); border-radius: 7px; font: inherit; font-size: 12.5px; background: #fff; color: var(--texto); }
+.campo:focus { outline: 2px solid var(--azul-claro); border-color: var(--azul); }
+.lista-expediente h4 { margin: 8px 0 4px; font-size: 12px; color: var(--texto-2); }
+.lista-expediente h4 .selo { font-size: 10px; }
+.lista-expediente h4.destaque { background: var(--azul-claro); border-radius: 6px; padding: 4px 6px; }
+/* nome de entrevistador: link discreto para o cadastro da equipe */
+a.pessoa { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--cinza); cursor: pointer; }
+a.pessoa:hover { color: var(--azul); border-bottom-color: var(--azul); }
+.linha-expediente { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--borda); font-size: 12.5px; }
+.linha-expediente > span:nth-of-type(2) { flex: 1; }
+.linha-expediente .btn { margin-left: auto; padding: 2px 7px; }
+.linha-expediente .selo.abrangencia { background: var(--azul-claro); color: var(--azul-escuro); }
+.form-expediente { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.campo-rot { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--texto-2); }
+.escolha-agencias { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; padding: 6px 8px; border: 1px dashed var(--borda); border-radius: 7px; font-size: 12.5px; }
+.escolha-agencias label { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Coluna Entrevistador congelada na grade de dias (pedido do usuário,
+   10/09/2026): a grade tem dezenas de colunas e o nome sumia ao rolar. O
+   canto superior esquerdo precisa ganhar do cabeçalho (que já é sticky no
+   topo) e da coluna, por isso o z-index maior. */
+.matriz-dias thead th:first-child, .matriz-dias tbody td:first-child, .matriz-dias tfoot th:first-child {
+  position: sticky; left: 0; z-index: 2; box-shadow: 1px 0 0 var(--borda); }
+.matriz-dias tbody td:first-child { background: #fff; }
+.matriz-dias tbody tr:hover td:first-child { background: #f3f7f0; }
+.matriz-dias thead th:first-child { z-index: 4; }
+.matriz-dias tfoot th:first-child { background: var(--fundo-2); z-index: 3; }
+.matriz-dias tfoot th { position: sticky; bottom: 0; }
+
+/* Grade entrevistador × dia: mostra todos os dias corridos do intervalo, e a
+   cor do cabeçalho diz por que um dia está vazio (fim de semana, feriado). */
+.matriz-dias th, .matriz-dias td { text-align: center; padding: 3px 2px; }
+.matriz-dias thead th { line-height: 1.05; }
+.matriz-dias thead th:first-child, .matriz-dias tbody td:first-child, .matriz-dias tfoot th:first-child { text-align: left; white-space: nowrap; }
+.matriz-dias .dia-num { display: block; font-size: 10.5px; }
+.matriz-dias .dia-sem { display: block; font-size: 9px; font-weight: 400; color: var(--texto-2); text-transform: lowercase; }
+.matriz-dias .sabado { background: #eef2f7; }
+.matriz-dias .domingo { background: #e3e9f1; }
+.matriz-dias .sem-exp { background: #fdf3d3; }
+/* feriado que só vale para parte das agências: listra, não bloco cheio */
+.matriz-dias .sem-exp-parcial { background: repeating-linear-gradient(45deg, #fdf3d3, #fdf3d3 3px, #fff 3px, #fff 6px); }
+.matriz-dias thead th.sem-exp .dia-sem { color: var(--laranja); font-weight: 700; }
+.matriz-dias td.trabalhou-folga { box-shadow: inset 0 0 0 2px var(--laranja); }
+.matriz-dias tfoot th { background: var(--fundo-2); font-size: 10.5px; }
+.legenda-dias { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; align-items: center; }
+.legenda-dias .amostra { display: inline-block; width: 11px; height: 11px; border: 1px solid var(--borda); border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.legenda-dias .amostra.sabado { background: #eef2f7; }
+.legenda-dias .amostra.domingo { background: #e3e9f1; }
+.legenda-dias .amostra.sem-exp { background: #fdf3d3; }
+.legenda-dias .amostra.sem-exp-parcial { background: repeating-linear-gradient(45deg, #fdf3d3, #fdf3d3 3px, #fff 3px, #fff 6px); }
+.legenda-dias .amostra.trabalhou-folga { background: #fff; box-shadow: inset 0 0 0 2px var(--laranja); }
+
+.resumo-inline { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
+.resumo-inline b { color: var(--azul-escuro); }
+
+/* indícios de pessoa no Painel da Coleta: linha por entrevistador no cartão da UPA/agência e bloco no painel da UPA */
+.pessoa-ind { font-size: 12px; margin-top: 4px; line-height: 1.4; }
+.bloco-pessoa { margin-top: 8px; padding-left: 8px; border-left: 3px solid #d8dee6; }
+/* semana ainda não iniciada: cartão de planejamento */
+.cartao-coleta.planejado { border-left-style: dashed; background: #f7f8fa; }
+
+
+/* ================================================================ RESPONSIVO
+   Uma tela só, de 360 px a monitor grande (pedido do usuário, 17/09/2026).
+   Três faixas, e cada uma existe por um motivo medido:
+
+   >= 1700 px  monitor grande: o conteúdo ocupa tudo, os gráficos crescem e a
+               tabela mostra mais linhas -- o teto de 1900 px deixava duas
+               faixas de fundo vazio nas laterais.
+   <= 1000 px  tablet em pé e celular: a barra lateral fixa (200 px) e a barra
+               de filtros (23 botões) não cabem junto com o conteúdo. O menu
+               vira gaveta e os filtros viram um botão.
+   <= 700 px   celular: uma coluna, alvos maiores para o dedo, primeira coluna
+               da tabela congelada (sem ela, rolar para o lado perde de vista
+               de que domicílio é a linha).                                  */
+
+/* ------------------------------------------------------- monitor grande */
+@media (min-width: 1700px) {
+  .grafico { height: 300px; }
+  .grafico.alto { height: 400px; }
+  .grafico.baixo { height: 230px; }
+  .tabela-wrap { max-height: min(620px, 58vh); }
+  .tabela-wrap.alta { max-height: min(1000px, 74vh); }
+  .cartoes { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+  .conteudo { padding: 18px 20px; }
+}
+
+/* ------------------------------------------- gaveta do menu e dos filtros */
+.btn-menu { display: none; }
+.fundo-menu { display: none; }
+.barra-filtros { position: relative; z-index: 1000; }
+.barra-filtros.oculta { display: none; }
+
+@media (max-width: 1000px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .btn-menu { display: inline-flex; }
+  /* a gaveta sai do fluxo (position: fixed), então a grade não reserva
+     coluna para ela e o conteúdo ocupa a tela inteira */
+  .nav { position: fixed; top: 54px; left: 0; bottom: 0; width: 262px;
+    transform: translateX(-103%); transition: transform .18s ease;
+    box-shadow: 0 0 24px rgba(20,40,30,.22); z-index: 1500; }
+  body.menu-aberto .nav { transform: none; }
+  body.menu-aberto .fundo-menu { display: block; position: fixed; inset: 54px 0 0 0;
+    background: rgba(15,25,20,.38); z-index: 1400; }
+  body:not(.filtros-recolhidos) .filtros { max-height: 52vh; overflow-y: auto; }
+  /* a lista de opções sai do fluxo: dentro de uma barra com rolagem ela
+     era CORTADA pela própria barra (e no celular passava da borda direita) */
+  .filtro .painel { position: fixed; top: 60px; left: 10px; right: 10px; width: auto;
+    max-height: calc(100vh - 80px); z-index: 1600; }
+  .mapa-layout { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; }
+  .mapa-painel { max-height: 40vh; }
+  #mapa { height: 62vh; min-height: 320px; }
+  .inicio { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+}
+
+/* ------------------------------------------------------------- celular */
+@media (max-width: 700px) {
+  .conteudo { padding: 10px; }
+  .topo { gap: 8px; padding: 0 8px; }
+  .topo .status { display: none; }        /* volta no cabeçalho da tela inicial */
+  .topo h1 { font-size: 14px; }
+  .topo h1 small { display: none; }
+  .topo .logo { width: 32px; height: 32px; }
+  /* Achado 19/09/2026, testado num celular de verdade: só o g2 recolhia
+     para 1 coluna aqui; g3/g4/g6 ficavam em 2, e um cartão de GRÁFICO
+     (ex.: "Por município" da página Aproveitamento, 45 categorias) sobrava
+     com ~150 px de canvas -- pouco até para o rótulo mais curto, e nem o
+     teto de segurança do eixo (graficos.js) resolve quando a largura
+     inteira já não basta. A regra "uma coluna" do celular (17/09/2026) já
+     dizia isso; só não valia para g3/g4/g6. Cartão de KPI pequeno também
+     funciona em 1 coluna -- só ocupa mais rolagem. */
+  .g2, .g23, .g32, .g3, .g4, .g6 { grid-template-columns: minmax(0, 1fr); }
+  .cartoes, .cartoes-dom { grid-template-columns: minmax(0, 1fr); }
+  .inicio { grid-template-columns: minmax(0, 1fr); }
+  /* A regra "uma coluna no celular" existe para o cartão de GRÁFICO, que com
+     ~150 px de canvas não desenha nada (varredura de 19/09/2026). Um KPI não
+     tem esse piso: em 375 px cada coluna fica com ~170 px, que lê bem -- e
+     empilhar os seis fazia cada mês ocupar meia tela de rolagem. */
+  .inicio > .cartao > .grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cartao { padding: 10px; }
+  .kpi .valor { font-size: 22px; }
+  .kpi .rotulo { font-size: 10.5px; }
+  .grafico { height: 230px; }
+  .grafico.alto { height: 260px; }
+  .grafico.baixo { height: 190px; }
+  .secao-titulo { flex-wrap: wrap; }
+  .secao-titulo h2 { font-size: 16px; }
+  /* alvo de toque: 3 px de altura de botão não se acerta com o dedo */
+  .btn { padding: 8px 12px; }
+  .btn.pequeno { padding: 6px 10px; }
+  .seg button { padding: 7px 12px; }
+  .nav a { padding: 11px 10px; }
+  .filtro > button { padding: 7px 10px; max-width: 100%; }
+  .filtro .painel { width: min(300px, calc(100vw - 28px)); }
+  /* formulários e listas de pares empilham: 120 px de rótulo mais o campo
+     não cabem em 360 px */
+  .form-sup .linha-form { grid-template-columns: minmax(0, 1fr); }
+  .dl { grid-template-columns: minmax(0, 1fr); gap: 0 0; }
+  .dl dt { margin-top: 6px; font-weight: 600; }
+  .par { grid-template-columns: minmax(0, 1fr) auto; }
+  table.tabela td { max-width: 46vw; }
+  table.tabela td:first-child { max-width: 42vw; }
+  .modal { padding: 12px; border-radius: 10px; }
+  .toasts { left: 12px; right: 12px; bottom: 12px; }
+  .toast { max-width: none; }
+  .barra-painel { gap: 8px 10px; }
+  .seletor-mes .mes { font-size: 14px; min-width: 96px; }
+  .tabela-wrap { max-height: min(460px, 60vh); }
+  /* a procedência é obrigatória em toda página, mas no celular ela tomava a
+     primeira tela inteira: recolhe em duas linhas e abre no toque */
+  .faixa-fonte { max-height: 3.2em; overflow: hidden; position: relative; cursor: pointer; }
+  .faixa-fonte::after { content: "… toque para ver as fontes"; position: absolute; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, var(--fundo-2) 16px); padding-left: 24px; color: var(--azul); font-weight: 600; }
+  .faixa-fonte.aberta { max-height: none; }
+  .faixa-fonte.aberta::after { display: none; }
+}
+
+/* ------------------------------------------------- identidade no topo */
+.usuario-topo { display: flex; align-items: center; }
+.usuario-topo .btn.usuario { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; }
+.usuario-topo .ini { width: 26px; height: 26px; border-radius: 50%; background: var(--azul); color: #fff;
+  display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.usuario-topo .quem { display: flex; flex-direction: column; line-height: 1.05; text-align: left; }
+.usuario-topo .quem small { font-size: 10px; font-weight: 500; color: var(--texto-2); }
+@media (max-width: 700px) { .usuario-topo .quem { display: none; } }
+
+/* ---------------------------------------------- matriz de permissões */
+.matriz-perm td { white-space: normal; }
+.matriz-perm th.num, .matriz-perm td.num { text-align: center; }
+.matriz-perm td.grupo-perm { background: var(--fundo-2); font-weight: 700; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .4px; color: var(--texto-2); }
+.matriz-perm input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+.matriz-perm input:disabled { cursor: not-allowed; opacity: .55; }
+
+/* ------------------------------------------------- aviso de versão nova */
+.barra-atualizacao { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--azul-claro); border-bottom: 1px solid #c7d7f5; color: var(--azul-escuro);
+  padding: 8px 14px; font-size: 13px; }
+.barra-atualizacao .espaco { flex: 1; }
+.barra-atualizacao .resumo { color: var(--texto); }
+
+/* ================================================= RECOLHÍVEIS (18/09/2026)
+   Menu lateral e barra de filtros recolhem em QUALQUER largura. Pedido do
+   usuário para notebook, onde a lateral de 200 px e as quatro linhas de
+   filtros comiam boa parte da tela antes de qualquer dado.               */
+
+/* ---- menu lateral recolhido: faixa de ícones (só acima de 1000 px; abaixo
+   disso o menu é gaveta) */
+/* O botão do menu é o único comando do cabeçalho, e o cabeçalho é BRANCO:
+   um .btn comum (fundo branco, borda clara) desaparecia nele -- restava uma
+   borda de 1 px de cinza-claro sobre branco (achado do usuário, 19/09/2026).
+   Ganha o mesmo tratamento do .chip, que já é a forma do sistema dizer
+   "isto é acionável": fundo azul-claro, traço azul-escuro. Quadrado, porque
+   o conteúdo é um ícone -- o padding 6/10 do .btn.icone é feito para ícone
+   ao lado de texto. */
+.btn-menu, .btn.icone.btn-menu { display: inline-flex; padding: 7px; border-radius: 8px;
+  background: var(--azul-claro); border-color: #c7d7f5; color: var(--azul-escuro); }
+.btn-menu:hover { background: #d3e1fa; border-color: #a9c2ef; }
+.btn-menu:active { background: #c3d5f6; }
+.btn-menu:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+/* No celular o botão abre a gaveta a CADA navegação, com o polegar:
+   é o comando mais tocado da tela e merece o alvo maior. */
+@media (max-width: 700px) { .btn.icone.btn-menu { padding: 10px; } }
+@media (min-width: 1001px) {
+  body.menu-recolhido { --nav-largura: 58px; }
+  body.menu-recolhido .nav { padding: 8px 6px; }
+  body.menu-recolhido .nav a { justify-content: center; font-size: 0; padding: 9px 0; gap: 0; }
+  body.menu-recolhido .nav a .ico { font-size: 17px; width: auto; opacity: .9; }
+  body.menu-recolhido .nav .grupo { font-size: 0; padding: 0; margin: 6px 8px; border-top: 1px solid var(--borda); }
+  body.menu-recolhido .nav .rodape { display: none; }
+}
+
+/* ---- barra de filtros recolhida: uma linha, com os ATIVOS sempre à vista */
+.alternar-filtros { font-weight: 700; white-space: nowrap; }
+.alternar-filtros .mini-info { font-weight: 500; }
+body.filtros-recolhidos:not(.filtros-sem-recolher) .filtros .filtro:not(.tem-selecao):not(.salvos) { display: none; }
+body.filtros-recolhidos:not(.filtros-sem-recolher) .filtros .busca:not(.tem-selecao) { display: none; }
+body.filtros-recolhidos:not(.filtros-sem-recolher) .filtros .limpar:not(.primario) { display: none; }
+body.filtros-recolhidos:not(.filtros-sem-recolher) .filtros { padding-top: 5px; padding-bottom: 5px; }
+
+/* ---- notebook: largura até 1440 px ou altura até 820 px. Menos respiro,
+   letras e gráficos um pouco menores, procedência numa linha só. */
+/* Só acima de 700 px: no celular a faixa própria (<= 700) já decide, e
+   estas regras, vindo depois no arquivo, desfaziam as dela. */
+@media (min-width: 701px) and (max-width: 1440px), (min-width: 701px) and (max-height: 820px) {
+  .conteudo { padding: 10px 12px; }
+  .topo { padding: 0 12px; gap: 10px; }
+  .secao-titulo { margin: 2px 0 8px; }
+  .secao-titulo h2 { font-size: 16px; }
+  .kpi { padding: 8px 6px; }
+  .kpi .valor { font-size: 24px; }
+  .cartao { padding: 10px 12px; }
+  .grade { gap: 10px; }
+  .filtros { padding: 6px 10px; gap: 5px 6px; }
+  .filtro > button { padding: 4px 8px; font-size: 12px; max-width: 230px; }
+  /* a procedência continua em toda página, mas numa linha: abre no clique */
+  .faixa-fonte { max-height: 1.9em; overflow: hidden; position: relative; cursor: pointer; padding: 4px 10px; }
+  .faixa-fonte::after { content: "… ver todas as fontes"; position: absolute; right: 0; top: 0; bottom: 0;
+    display: flex; align-items: center; padding: 0 10px 0 28px; color: var(--azul); font-weight: 600;
+    background: linear-gradient(90deg, transparent, var(--fundo-2) 26px); }
+  .faixa-fonte.aberta { max-height: none; }
+  .faixa-fonte.aberta::after { display: none; }
+}
+@media (min-width: 701px) and (max-height: 820px) {
+  .grafico { height: 230px; }
+  .grafico.alto { height: 290px; }
+  .grafico.baixo { height: 180px; }
+  .grafico.mini { height: 130px; }
+  .tabela-wrap { max-height: min(440px, 50vh); }
+  .tabela-wrap.alta { max-height: min(640px, 62vh); }
+}
+
+/* Análises temporais (temporal.js) */
+.texto-metodo p { margin: 0 0 8px; line-height: 1.5; max-width: 1000px; }
+.matriz-cor { border-collapse: collapse; font-size: 11.5px; }
+.matriz-cor th, .matriz-cor td { padding: 4px 6px; border: 1px solid var(--borda); }
+.matriz-cor td { font-variant-numeric: tabular-nums; }
+
+/* ================================================================= MAPA EM
+   TELA CHEIA (19/09/2026, pedido do usuário: "o mapa deve ocupar todo o
+   espaço, exceto o cabeçalho; todas as funções restantes através de botões
+   recolhíveis"). Antes o mapa dividia a tela com um painel de 280 px de
+   caixas de seleção, e no celular esse painel vinha ANTES do mapa: a pessoa
+   rolava 40% da tela de opções para chegar ao que veio ver. A altura era
+   calculada por `calc(100vh - ...)` somando pedaços fixos -- que não batiam
+   com a barra de filtros de 4 linhas nem com o título, e a página inteira
+   rolava. Agora é `inset: 0` dentro do conteúdo: nada de aritmética. */
+body.mapa-cheio #conteudo { position: relative; padding: 0; overflow: hidden; }
+body.mapa-cheio .faixa-fonte { display: none; }
+.mapa-cheia { position: absolute; inset: 0; }
+.mapa-cheia #mapa { position: absolute; inset: 0; height: 100%; border: 0; border-radius: 0; }
+
+/* Botões flutuantes: alvo de 48 px (o mínimo que um polegar acerta sob sol,
+   em pé, com uma mão só) e sempre acima dos painéis do Leaflet (z 400). */
+/* ROSA DOS VENTOS (pedido do usuário, 20/09/2026). Fica no canto OPOSTO aos
+   botões: o polegar direito já tem cinco alvos naquele lado, e a rosa é de
+   OLHAR, não de apertar o tempo todo. A carta gira; o índice de cima e o
+   número ficam parados -- é o desenho de uma bússola de verdade, e é o que
+   permite ler o rumo sem procurar onde o número foi parar. */
+/* ONDE A ROSA COUBE, depois de duas tentativas erradas e de OLHAR a tela do
+   aparelho em vez de deduzir. Os quatro cantos têm dono e nenhum estava
+   livre: em cima à esquerda a pílula de estado; em cima à direita o controle
+   de zoom do Leaflet (foi ele que cobriu a rosa na segunda tentativa --
+   `zoomControl` desligado no mapa, mas o controle existe na página); embaixo
+   à direita a coluna de botões; embaixo à esquerda a legenda flutuante e a
+   barra de escala (foi ela a primeira tentativa). Sobrou a FAIXA da esquerda,
+   logo abaixo da pílula -- que é também onde o Google põe a bússola dele, e
+   por um bom motivo: fica no campo de visão de quem lê o mapa e fora do
+   alcance do polegar que arrasta. */
+/* BLOCO DE INSTRUMENTOS: rumo e posição lado a lado, porque se leem
+   juntos -- "onde estou e para onde estou virado" é uma pergunta só. */
+.mapa-instr { position: absolute; left: 12px; top: 58px; z-index: 620;
+  display: flex; align-items: flex-start; gap: 8px; max-width: calc(100% - 78px); }
+.mapa-rosa { position: relative; flex: 0 0 auto;
+  width: 62px; height: 62px; border-radius: 50%; cursor: pointer;
+  /* `var(--fundo-1)` NÃO EXISTE neste CSS -- as variáveis são `--fundo` e
+     `--fundo-2` -- e variável inexistente sem alternativa torna a
+     declaração inválida: o fundo simplesmente não era pintado. Sobre o mapa
+     claro quase não se notava; sobre SATÉLITE a rosa virou um anel
+     transparente em cima de imagem escura e cheia de detalhe (achado do
+     usuário no aparelho, 21/09/2026). Aqui o valor é escrito à mão, e não
+     por variável: este disco tem de ser CLARO em qualquer fundo de mapa,
+     inclusive num tema escuro, porque a agulha vermelha e os tiques cinza
+     foram desenhados para fundo claro. */
+  border: 1px solid rgba(0,0,0,.18); background: rgba(255,255,255,.93);
+  box-shadow: 0 2px 10px rgba(0,0,0,.35); padding: 0; }
+.mapa-rosa .rosa-carta { position: absolute; inset: 5px; display: block;
+  transition: transform .12s linear; }
+.mapa-rosa svg { width: 100%; height: 100%; display: block; }
+.mapa-rosa .ro-anel { fill: none; stroke: rgba(0,0,0,.28); stroke-width: 1.5; }
+.mapa-rosa .ro-n { fill: #d93025; }
+.mapa-rosa .ro-s { fill: #5b6570; opacity: .75; }
+.mapa-rosa .ro-t { stroke: #5b6570; stroke-width: 1.5; opacity: .8; }
+.mapa-rosa .ro-let { fill: #d93025; font-size: 9px; font-weight: 800;
+  text-anchor: middle; font-family: var(--fonte); }
+/* o índice: para onde a pessoa está olhando. NÃO gira. */
+/* o índice fica FORA do disco, então cai direto sobre o mapa: leva contorno
+   claro por baixo, a mesma doutrina das linhas do mapa */
+.mapa-rosa .rosa-indice { filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff);
+  position: absolute; left: 50%; top: -5px;
+  width: 0; height: 0; transform: translateX(-50%);
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-top: 8px solid var(--azul-escuro); }
+.mapa-rosa .rosa-graus { position: absolute; left: 0; right: 0; bottom: 3px;
+  font-family: var(--mono); font-size: 11px; font-weight: 800;
+  color: #1a1f28; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
+.mapa-rosa.sem-bussola { opacity: .55; }
+/* sem posição não há declinação, então a rosa mostra o norte MAGNÉTICO
+   enquanto o mapa está em norte verdadeiro -- aqui dá 23° de diferença. O
+   anel tracejado diz isso sem ocupar espaço com texto. */
+.mapa-rosa.magnetico .ro-anel { stroke-dasharray: 3 3; }
+/* rumo sustentado pelo giroscópio: a bússola aqui não vale, mas a rosa
+   continua certa -- o anel âmbar diz que ela está vivendo de memória */
+.mapa-rosa.segurando { border-color: #f0a000; box-shadow: 0 0 0 2px rgba(240,160,0,.25), 0 2px 10px rgba(0,0,0,.25); }
+.mapa-rosa.segurando .ro-anel { stroke: #f0a000; }
+/* modo mapa girando: a rosa passa a ser a Única referência de norte, então
+   ganha o destaque que o mapa perdeu */
+.mapa-rosa.gira { background: var(--azul-escuro); border-color: var(--azul-escuro); }
+.mapa-rosa.gira .ro-anel { stroke: rgba(255,255,255,.5); }
+.mapa-rosa.gira .ro-t { stroke: rgba(255,255,255,.7); opacity: .9; }
+.mapa-rosa.gira .ro-s { fill: #fff; opacity: .5; }
+.mapa-rosa.gira .rosa-graus { color: #fff; text-shadow: 0 0 3px #0b1220, 0 0 3px #0b1220; }
+.mapa-rosa.gira .rosa-indice { border-top-color: #ffd21e; }
+.mapa-rosa:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+/* COORDENADAS DA POSIÇÃO: as duas notações, porque servem a coisas
+   diferentes -- o GMS é o que se dita no rádio e o que está no cadastro; o
+   decimal é o que se cola num campo de busca. A PRECISÃO vem junto e não
+   é opcional: sem ela, seis casas decimais afirmam um metro que o GPS não
+   tem, e é essa falsa exatidão que faz alguém dizer "o entrevistador não
+   esteve aqui". */
+.mapa-coord { display: flex; align-items: flex-start; gap: 4px;
+  background: rgba(255,255,255,.82); border: 1px solid rgba(0,0,0,.08);
+  border-radius: 9px; padding: 3px 5px 3px 3px; min-width: 0;
+  backdrop-filter: blur(2px); }
+.mapa-coord .co-dobra { flex: 0 0 auto; width: 22px; height: 22px; border: 0;
+  border-radius: 6px; background: rgba(0,0,0,.06); color: var(--texto-2);
+  cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+.mapa-coord .co-corpo { cursor: pointer; min-width: 0; font-size: 10.5px;
+  line-height: 1.3; color: var(--texto-2); }
+.mapa-coord.recolhida { background: rgba(255,255,255,.7); padding: 3px; }
+.mapa-coord.recolhida .co-corpo { display: none; }
+.mapa-coord .co-gms { font-family: var(--mono); font-weight: 700; font-size: 11px;
+  color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mapa-coord .co-dec { font-family: var(--mono); white-space: nowrap; }
+/* a terceira linha existe SEMPRE e só troca de conteúdo: "centro da tela"
+   quando se mirou outro ponto, "sua posição" com altitude e precisão quando
+   o centro voltou para cima do GPS. Assim a altura não muda ao arrastar. */
+.mapa-coord .co-mais { display: flex; gap: 6px; white-space: nowrap; }
+.mapa-coord .co-mais.eu { color: #1a73e8; font-weight: 700; }
+.mapa-coord .co-prec { color: #1a73e8; font-weight: 700; }
+
+/* MARCA DO DESTINO: âmbar e de forma própria, porque as cores do sistema
+   carregam juízo (verde desfecho, vermelho perda) e o destino não é juízo
+   nenhum -- é uma escolha, e tem de se achar de relance entre centenas de
+   pontos coloridos. */
+.marca-destino svg { width: 34px; height: 42px; overflow: visible;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+.marca-destino .haste { stroke: #0b1220; stroke-width: 3; fill: none; }
+.marca-destino .fora { fill: rgba(255,210,30,.35); stroke: #0b1220; stroke-width: 3; }
+.marca-destino .dentro { fill: #ffd21e; stroke: #0b1220; stroke-width: 2; }
+.regua-alvo.destino { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.regua-alvo.destino b { color: #ffd21e; }
+.regua-x { margin-left: auto; border: 0; background: rgba(255,255,255,.12); color: #fff;
+  border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 13px; }
+.regua-alvo.destino .regua-sub { flex-basis: 100%; }
+
+/* o envelope que gira embrulha SÓ o mapPane -- nunca o container, que é o
+   que o Leaflet mede */
+.mapa-giro { position: absolute; inset: 0; transform-origin: 50% 50%;
+  will-change: transform; }
+/* container AMPLIADO até a diagonal e recortado de volta ao retângulo
+   visível: girando, os quatro cantos continuam com mapa em vez de vazio */
+#mapa.girando { position: absolute; width: auto; height: auto;
+  inset: calc(-1 * var(--giro-y, 0px)) calc(-1 * var(--giro-x, 0px));
+  clip-path: inset(var(--giro-y, 0px) var(--giro-x, 0px));
+  border-radius: 0; }
+@media (max-width: 700px) {
+  .mapa-instr { left: 10px; top: 54px; max-width: calc(100% - 72px); }
+  .mapa-rosa { width: 54px; height: 54px; }
+  .mapa-rosa .rosa-graus { font-size: 10px; }
+}
+
+/* ================================================== RÉGUA DE CAMPO
+   A MIRA fica no centro exato da tela e NÃO acompanha o mapa: mira-se
+   arrastando o mapa com o polegar, sem tapar com o dedo justamente o ponto
+   que se quer medir. Por isso ela é um elemento da PÁGINA, não uma camada
+   do Leaflet -- e por isso também continua válida com o mapa girado: o
+   centro é o único ponto que a rotação não move. */
+/* A mira DISCRETA do centro, para quando não há ponto de GPS na tela: ela
+   só marca a que lugar as coordenadas se referem, então é de tinta cinza e
+   bem menor que a da régua -- não é um instrumento de medida, é uma
+   referência de leitura. */
+.mira-centro { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px;
+  margin: -17px 0 0 -17px; z-index: 612; pointer-events: none; }
+.mira-centro[hidden] { display: none; }
+.mira-centro .mc { position: absolute; background: rgba(40,48,60,.7);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.85); }
+.mira-centro .mc.h { left: 0; right: 0; top: 50%; height: 1px; margin-top: -.5px; }
+.mira-centro .mc.v { top: 0; bottom: 0; left: 50%; width: 1px; margin-left: -.5px; }
+.mira-centro .mc.anel { left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  background: transparent; border: 1px solid rgba(40,48,60,.7); border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.7), inset 0 0 0 1px rgba(255,255,255,.7); }
+.regua-mira { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px;
+  margin: -27px 0 0 -27px; z-index: 615; pointer-events: none; }
+.regua-mira .rm { position: absolute; background: #1a73e8;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.85); }
+.regua-mira .rm.h { left: 0; right: 0; top: 50%; height: 1.5px; margin-top: -.75px; }
+.regua-mira .rm.v { top: 0; bottom: 0; left: 50%; width: 1.5px; margin-left: -.75px; }
+.regua-mira .rm.anel { left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  background: transparent; border: 2px solid #1a73e8; border-radius: 50%; }
+/* o rótulo de cada perna, escrito EM CIMA da linha */
+.leaflet-tooltip.rot-regua { background: rgba(26,115,232,.94); color: #fff; border: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4); font-size: 12px; font-weight: 700;
+  font-family: var(--mono); padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+.leaflet-tooltip.rot-regua::before { display: none; }
+/* durante a animação de zoom o rótulo fica no meio do trecho visível de um
+   enquadramento que está mudando: em vez de deslizar pela linha, ele some e
+   volta já no lugar certo. Sem transição, para não virar um piscar. */
+/* `!important` aqui não é preguiça: o Leaflet escreve `style="opacity"`
+   INLINE no tooltip (`Tooltip._setOpacity`), e estilo inline vence qualquer
+   seletor. Sem isto a regra simplesmente não tinha efeito -- medido. */
+body.regua-zoom .leaflet-tooltip.rot-regua { opacity: 0 !important; transition: none !important; }
+/* com o mapa girado, o rótulo vive dentro do painel girado e viraria de
+   cabeça para baixo; o giro contrário é aplicado no span de dentro, porque
+   o próprio tooltip é posicionado por `transform` pelo Leaflet */
+.gira-contra { display: inline-block; transform: rotate(var(--gira-contra, 0deg)); }
+/* A CAIXA DE LEITURA (reorganizada em 20/09/2026, três achados do usuário:
+   mudava de altura, ocupava muito e não recolhia). DUAS LINHAS DE ALTURA
+   FIXA -- a de cima com o que se executa, a de baixo com o contexto -- e
+   `nowrap` nas duas: o texto que não cabe é cortado, nunca quebrado, e a
+   altura da caixa deixa de depender do valor que ela está mostrando. */
+.regua-caixa { position: absolute; left: 10px; right: 76px; bottom: 14px; z-index: 622;
+  background: rgba(11,18,32,.92); color: #fff; border-radius: 12px;
+  padding: 6px 66px 6px 10px; box-shadow: 0 2px 12px rgba(0,0,0,.4); }
+.regua-dobra, .regua-fechar { position: absolute; top: 5px; width: 28px; height: 28px;
+  border: 0; border-radius: 50%; background: rgba(255,255,255,.12); color: #fff;
+  cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.regua-dobra { right: 38px; }
+.regua-fechar { right: 6px; }
+.regua-l1, .regua-l2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.regua-l1 { min-height: 26px; line-height: 26px; }
+.regua-l2 { min-height: 17px; line-height: 17px; font-size: 12px; opacity: .88; }
+.regua-l1 b { font-size: 20px; font-weight: 800; font-family: var(--mono); }
+.regua-l1 b.apagado { opacity: .45; }
+.regua-mais { font-size: 11px; opacity: .7; font-family: var(--mono); margin-left: 3px; }
+.regua-az { font-size: 14px; font-weight: 700; font-family: var(--mono); color: #8ef2ff; margin-left: 8px; }
+.regua-giro { font-size: 12.5px; font-weight: 700; margin-left: 8px; }
+.regua-giro.alinhado { color: #7ee2a8; }
+.regua-l2 b.alvo { font-weight: 700; }
+.regua-l2 b.alvo.destino { color: #ffd21e; }
+.regua-l2 b.alvo.mono { font-family: var(--mono); font-weight: 600; }
+.regua-extra { opacity: .72; }
+/* UMA fileira de botões que rola de lado: embrulhar em duas fileiras
+   mudaria a altura da caixa, que é o que se quer evitar. */
+.regua-acoes { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 6px;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding-bottom: 1px; }
+.regua-acoes::-webkit-scrollbar { display: none; }
+.regua-bt { flex: 0 0 auto; border: 1px solid rgba(255,255,255,.26);
+  background: rgba(255,255,255,.08); color: #fff; border-radius: 15px;
+  padding: 5px 11px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  min-height: 30px; white-space: nowrap; }
+.regua-bt.forte { background: #1a73e8; border-color: #1a73e8; }
+.regua-bt.forte.ativo { background: #ffd21e; border-color: #ffd21e; color: #0b1220; }
+.regua-bt[disabled] { opacity: .35; }
+.regua-bt[hidden] { display: none; }
+.regua-bt:focus-visible { outline: 3px solid #8ef2ff; outline-offset: 2px; }
+/* recolhida: sobra a linha que se executa, e a tela volta a ser mapa */
+.regua-caixa.recolhida .regua-l2,
+.regua-caixa.recolhida .regua-acoes { display: none; }
+.regua-caixa.recolhida { padding-bottom: 5px; }
+
+/* medindo, a legenda sai da frente e os botões sobem: a caixa ocupa a faixa
+   de baixo, que é justamente onde os dois moram */
+body.medindo .mapa-legenda-flut { display: none; }
+body.medindo .mapa-fabs { bottom: 14px; }
+@media (max-width: 700px) {
+  .regua-caixa { left: 8px; right: 70px; bottom: 10px; padding: 7px 9px; }
+  .regua-linha1 b { font-size: 19px; }
+}
+
+.mapa-fabs { position: absolute; right: 12px; bottom: 18px; z-index: 620;
+  display: flex; flex-direction: column; gap: 10px; }
+/* DEITADO, A COLUNA NÃO CABE (achado do usuário no aparelho, 20/09/2026:
+   "na horizontal tem botões se sobrepondo"). Com a régua a coluna passou a
+   ter SEIS botões: 6x48 + 5x10 = 338 px, e em paisagem sobram ~406 px de
+   altura -- o topo da coluna subia por baixo do controle de zoom do
+   Leaflet, que mora no canto de cima à direita. Em duas colunas são
+   3x48 + 2x8 = 160 px, que cabem com folga em qualquer aparelho deitado.
+   A caixa da régua recua junto, senão passaria por baixo delas. */
+@media (max-height: 560px) {
+  .mapa-fabs { display: grid; grid-template-columns: repeat(2, 48px);
+    gap: 8px; bottom: 12px; }
+  .regua-caixa { right: 122px; }
+}
+.mapa-fab { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--borda);
+  background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.28); cursor: pointer;
+  font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  color: var(--texto); padding: 0; position: relative; }
+.mapa-fab:hover { background: var(--fundo-2); }
+.mapa-fab.ativo { background: var(--azul); color: #fff; border-color: var(--azul); }
+.mapa-fab .n { position: absolute; top: -4px; right: -4px; background: var(--azul); color: #fff;
+  border-radius: 9px; font-size: 10px; font-weight: 700; padding: 1px 5px; }
+.mapa-fab:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+/* Pílula de estado: o que está desenhado e quantos filtros valem. Toca e abre
+   os filtros -- é o caminho mais curto entre "não achei o que procuro" e a
+   causa, que quase sempre é um filtro esquecido noutra página. */
+.mapa-estado { position: absolute; left: 12px; top: 12px; z-index: 620; max-width: calc(100% - 90px);
+  background: rgba(255,255,255,.95); border: 1px solid var(--borda); border-radius: 18px;
+  box-shadow: var(--sombra); padding: 7px 14px; font-size: 12.5px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.mapa-estado b { font-weight: 700; }
+.mapa-estado .marca-filtro { background: var(--azul); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700; }
+
+/* Gaveta: folha inferior no celular, painel flutuante à esquerda no monitor. */
+/* mesma variável inexistente: a gaveta ficava com fundo transparente por
+   cima do mapa -- sobre satélite, ilegível */
+.mapa-gaveta { position: absolute; z-index: 640; background: var(--fundo);
+  box-shadow: 0 -4px 20px rgba(0,0,0,.24); display: flex; flex-direction: column; }
+.mapa-gaveta[hidden] { display: none; }
+.mapa-gaveta .topo { display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--borda); flex: 0 0 auto; }
+.mapa-gaveta .topo h3 { margin: 0; font-size: 14px; }
+.mapa-gaveta .corpo { overflow-y: auto; padding: 10px 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+.mapa-gaveta .cartao { padding: 10px 12px; }
+.mapa-gaveta h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--texto-2); }
+.mapa-gaveta label { display: flex; align-items: center; gap: 9px; font-size: 13px; padding: 7px 0; cursor: pointer; min-height: 40px; }
+.mapa-gaveta label input[type=checkbox] { width: 18px; height: 18px; flex: 0 0 auto; }
+.mapa-gaveta select { width: 100%; padding: 8px; border: 1px solid var(--borda); border-radius: 6px; font-size: 13px; }
+@media (max-width: 1000px) {
+  .mapa-gaveta { left: 0; right: 0; bottom: 0; max-height: 78%; border-radius: 14px 14px 0 0; }
+}
+@media (min-width: 1001px) {
+  .mapa-gaveta { left: 12px; top: 12px; bottom: 18px; width: 320px; border-radius: 12px; border: 1px solid var(--borda); }
+}
+.mapa-veu { position: absolute; inset: 0; background: rgba(0,0,0,.25); z-index: 630; }
+.mapa-veu[hidden] { display: none; }
+
+/* Legenda flutuante, recolhível: no celular nasce fechada (é consulta, não
+   operação) e ocupa uma pastilha. */
+.mapa-legenda-flut { position: absolute; left: 12px; bottom: 18px; z-index: 610;
+  background: rgba(255,255,255,.95); border: 1px solid var(--borda); border-radius: 10px;
+  box-shadow: var(--sombra); font-size: 12px; max-width: 240px; }
+.mapa-legenda-flut summary { cursor: pointer; padding: 8px 12px; font-weight: 600; min-height: 34px; }
+.mapa-legenda-flut .conteudo { padding: 0 12px 10px; max-height: 40vh; overflow-y: auto; }
+.mapa-legenda-flut .conteudo div { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
+.mapa-legenda-flut .conteudo i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.25); }
+@media (max-width: 700px) { .mapa-legenda-flut { max-width: 58%; bottom: 76px; } }
+
+/* Minha posição: ponto azul com halo, e o círculo de precisão do GPS. O halo
+   branco é o que o faz sobreviver sobre imagem de satélite ao sol. */
+.marca-eu { width: 18px; height: 18px; border-radius: 50%; background: #1a73e8;
+  border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 0 8px rgba(26,115,232,.8); }
+
+/* ------------------------------------------------- realidade aumentada (AR)
+   A câmera ao fundo e, sobre ela, uma FAIXA de alvos posicionados só em
+   AZIMUTE. Nada é ancorado em altura: bússola de celular erra de 15 a 30
+   graus, e fingir que a etiqueta está "sobre a casa" seria dar uma precisão
+   que não existe. A largura de cada alvo cresce com a incerteza. */
+/* ----------------------------------------------- realidade aumentada
+   Refeita em 20/09/2026. Três princípios de campo, todos com motivo:
+   - FUNDO SÓLIDO, nunca degradê sobre vídeo: ao sol de Rondônia, texto sobre
+     imagem de rua some. Contraste alvo >= 7:1.
+   - AÇÃO NO TERÇO INFERIOR: o polegar não alcança o topo de um aparelho de
+     6,7". O ✕ antigo ficava no canto superior ESQUERDO, o mais distante.
+   - ALVO DE TOQUE >= 48 px, mesmo que a pastilha desenhada seja menor. */
+.ar-tela { position: fixed; inset: 0; z-index: 1200; background: #05080a; overflow: hidden; }
+.ar-tela video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ar-fundo-vazio { position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 38%, #16212b, #05080a 70%); }
+/* o <video> existe SEMPRE (a tela abre antes de a camera chegar, e ela pode
+   chegar depois ou nunca); enquanto nao ha imagem, sai da frente do fundo */
+.ar-tela.sem-camera video { display: none; }
+
+/* --- TOPO: VISOR DE RUMO (HUD)
+   Pedido do usuário (20/09/2026): "a representação da direção de azimute
+   deve ter um visual mais moderno, algo como o que se mostra numa viseira
+   de piloto de caça". O que se toma emprestado de um HUD de verdade é o que
+   o torna legível EM MOVIMENTO, não o enfeite:
+     - o número grande em fonte de largura FIXA, entre colchetes: assim ele
+       não "dança" ao passar de 99 para 100, e o olho acha sempre no mesmo
+       lugar;
+     - o BORESIGHT no centro, fixo, com a régua deslizando por baixo -- quem
+       se move é o mundo, não o cursor;
+     - traço fino em ciano, que não existe na tabela de cor do sistema
+       (verde/amarelo/vermelho carregam juízo aqui) e por isso lê-se como
+       INSTRUMENTO, não como avaliação;
+     - contorno escuro sob cada traço: a doutrina de sol forte continua
+       valendo -- linha clara fina sobre imagem clara some ao meio-dia.
+   Três pistas empilhadas, cada uma com um papel só: alvos em cima, régua no
+   meio, letras embaixo. Numa pista só, a pastilha do alvo caía em cima da
+   letra do ponto cardeal (visto na bancada a 375 px). */
+.ar-tela { --hud: #8ef2ff; --hud-fraco: rgba(142,242,255,.45); }
+.ar-topo { position: absolute; left: 0; right: 0; top: 0; color: #fff;
+  padding: calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 10px
+           calc(10px + env(safe-area-inset-left));
+  background: linear-gradient(#0b1220f2, #0b1220d9 62%, #0b122000); }
+
+/* A FITA TEM DE MEDIR A MESMA TELA QUE OS DESIGNADORES. Ela nasce dentro
+   de `.ar-topo`, que tem 10 px de recuo de cada lado (mais o recorte do
+   aparelho), enquanto `.ar-faixa` vai de borda a borda: a fita media 387 px
+   onde os alvos mediam 407, e a mesma direção caía em dois lugares -- a
+   escala saía 5% comprimida e a origem 10 px deslocada (medido no aparelho,
+   20/09/2026). A margem negativa desfaz o recuo, e a fita de ponta a ponta
+   é também o desenho certo para um instrumento. */
+.ar-fita { position: relative; height: 46px; margin-bottom: 2px; overflow: hidden;
+  margin-left: calc(-10px - env(safe-area-inset-left));
+  margin-right: calc(-10px - env(safe-area-inset-right)); }
+.ar-fita::after { content: ''; position: absolute; left: 0; right: 0; bottom: 15px;
+  height: 1px; background: var(--hud-fraco); }
+/* régua: tique fino a cada 5°, médio a cada 15°, alto nos pontos cardeais */
+.ar-fita .ar-tique { position: absolute; bottom: 15px; width: 1px; height: 5px;
+  background: var(--hud-fraco); font-style: normal; transform: translateX(-50%); }
+.ar-fita .ar-tique.medio { height: 9px; background: rgba(142,242,255,.7); }
+.ar-fita .ar-tique.card { height: 13px; width: 1.5px; background: var(--hud); }
+.ar-fita .ar-card { position: absolute; bottom: 0; transform: translateX(-50%);
+  font-style: normal; text-decoration: none; font-size: 11px; font-weight: 800;
+  color: var(--hud); letter-spacing: .5px; text-shadow: 0 1px 3px #000; }
+/* o norte é a única referência ABSOLUTA da fita: acha-se de relance */
+.ar-fita .ar-tique.norte { background: #ffd21e; width: 2px; height: 16px; }
+.ar-fita .ar-card.norte { color: #ffd21e; }
+/* BORESIGHT: o cursor fixo do centro -- para onde o aparelho aponta */
+.ar-fita .hud-boresight { position: absolute; left: 50%; bottom: 13px; width: 0; height: 0;
+  transform: translateX(-50%); border-left: 7px solid transparent;
+  border-right: 7px solid transparent; border-top: 9px solid var(--hud);
+  filter: drop-shadow(0 1px 2px #000); }
+
+/* marca do alvo na fita: a LARGURA é a incerteza (doutrina de 19/09 -- é uma
+   direção, não um ponto), e tocar nela escolhe o alvo */
+.ar-fita .ar-marca { position: absolute; top: 0; height: 18px; border-radius: 3px;
+  transform: translateX(-50%); font-size: 11px; font-weight: 700; line-height: 17px;
+  font-family: var(--mono);
+  text-align: center; overflow: hidden; white-space: nowrap; cursor: pointer;
+  background: rgba(11,18,32,.82); color: #fff; border: 1px solid var(--hud); }
+.ar-fita .ar-marca.dom { border-color: #ffd21e; color: #ffd21e; }
+.ar-fita .ar-marca.grupo { border-color: #fff; color: #fff; }
+.ar-fita .ar-marca.feicao { border-color: var(--hud); color: var(--hud); }
+.ar-fita .ar-marca.fixado { background: #ffd21e; color: #0b1220; border-color: #fff; }
+
+/* leitura de rumo: [ 345 ° NO ] ±12° */
+.ar-rumo { display: flex; align-items: baseline; gap: 3px; cursor: pointer;
+  font-family: var(--mono); text-shadow: 0 1px 4px #000; }
+.ar-rumo .hud-colchete { color: var(--hud); font-size: 19px; opacity: .75; }
+.ar-rumo .hud-graus { font-size: 25px; font-weight: 800; letter-spacing: 1.5px;
+  color: #fff; text-shadow: 0 0 8px rgba(142,242,255,.55), 0 1px 4px #000; }
+.ar-rumo .hud-grau-sinal { color: var(--hud); font-size: 14px; }
+.ar-rumo .hud-card { color: var(--hud); font-size: 15px; font-weight: 700; margin-left: 3px; }
+.ar-rumo .hud-erro { font-size: 11.5px; opacity: .8; margin-left: 5px; }
+/* a incerteza diz DE ONDE VEM: alargada pelo ambiente (âmbar) é coisa que se
+   resolve dando cinco passos; alargada pelo aparelho, não é */
+.ar-rumo .hud-erro.por-campo { color: #ffd21e; opacity: 1; font-weight: 700; }
+.ar-rumo .hud-erro.por-giro { color: #8ef2ff; opacity: 1; font-weight: 700; }
+.ar-rumo .hud-sem { color: #ffb4a8; font-weight: 700; letter-spacing: 1px; font-size: 15px; }
+.ar-linha-gps { font-size: 11.5px; opacity: .85; font-family: var(--mono); }
+.ar-sem-camera { margin-top: 5px; font-size: 11.5px; background: rgba(240,140,0,.9);
+  color: #1a1206; border-radius: 7px; padding: 5px 8px; font-weight: 600; }
+
+/* --- mira e faixa de alvos */
+/* RETÍCULA central: onde o eixo do aparelho encontra o mundo. Anel fino com
+   dois tiques, em vez da barra vertical de 120 px de antes -- a barra
+   cobria a fachada justamente no meio da tela, que é onde se olha. */
+/* MIRA: eixos de ponta a ponta, anel fino e colchetes (pedido do usuário,
+   20/09/2026: "forma que remeta mais à modernidade, futurista; linha fina no
+   total da tela na horizontal e na vertical"). As linhas inteiras dão o que
+   um anel sozinho não dá -- um HORIZONTE de referência para enquadrar a
+   fachada -- e continuam sendo de 1 px, com um VAZIO no meio: cruzar os dois
+   eixos sobre o alvo taparia exatamente o que se está olhando. O contorno
+   escuro por baixo é a doutrina de sol forte: linha clara fina sobre imagem
+   clara some ao meio-dia. */
+.ar-mira { position: absolute; inset: 0; pointer-events: none;
+  --mira-y: 47%; --mira-r: 23px;
+  /* o vão que os eixos abrem no meio acompanha o anel e os colchetes: com
+     um valor fixo, mudar o raio (paisagem) deixava o vão maior que a figura */
+  --mira-vao: calc(var(--mira-r) + 13px); }
+.ar-mira .mira-eixo { position: absolute; background: var(--hud-fraco);
+  box-shadow: 0 0 0 .5px rgba(0,0,0,.5); }
+.ar-mira .mira-eixo.h { left: 0; right: 0; top: var(--mira-y); height: 1px;
+  transform: translateY(-50%);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%,
+    #000 calc(50% - var(--mira-vao) - 5px), transparent calc(50% - var(--mira-vao)),
+    transparent calc(50% + var(--mira-vao)), #000 calc(50% + var(--mira-vao) + 5px),
+    #000 95%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 5%,
+    #000 calc(50% - var(--mira-vao) - 5px), transparent calc(50% - var(--mira-vao)),
+    transparent calc(50% + var(--mira-vao)), #000 calc(50% + var(--mira-vao) + 5px),
+    #000 95%, transparent); }
+.ar-mira .mira-eixo.v { top: 0; bottom: 0; left: 50%; width: 1px;
+  transform: translateX(-50%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 5%,
+    #000 calc(var(--mira-y) - var(--mira-vao) - 5px),
+    transparent calc(var(--mira-y) - var(--mira-vao)),
+    transparent calc(var(--mira-y) + var(--mira-vao)),
+    #000 calc(var(--mira-y) + var(--mira-vao) + 5px), #000 95%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 5%,
+    #000 calc(var(--mira-y) - var(--mira-vao) - 5px),
+    transparent calc(var(--mira-y) - var(--mira-vao)),
+    transparent calc(var(--mira-y) + var(--mira-vao)),
+    #000 calc(var(--mira-y) + var(--mira-vao) + 5px), #000 95%, transparent); }
+.ar-mira .mira-anel { position: absolute; left: 50%; top: var(--mira-y);
+  width: calc(var(--mira-r) * 2); height: calc(var(--mira-r) * 2);
+  margin: calc(var(--mira-r) * -1) 0 0 calc(var(--mira-r) * -1);
+  border: 1px solid var(--hud-fraco); border-radius: 50%;
+  filter: drop-shadow(0 0 1px #000); }
+.ar-mira .mira-ponto { position: absolute; left: 50%; top: var(--mira-y);
+  width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; border-radius: 50%;
+  background: var(--hud); box-shadow: 0 0 4px rgba(142,242,255,.9), 0 0 0 .5px rgba(0,0,0,.6); }
+/* os quatro colchetes: a marcação de alvo de um visor, e o que dá à mira o
+   ar de instrumento em vez de cruz de papel */
+.ar-mira .mira-colch { position: absolute; width: 11px; height: 11px;
+  border: 1.5px solid var(--hud); filter: drop-shadow(0 0 1.5px #000); opacity: .9; }
+.ar-mira .mira-colch.ce { left: calc(50% - var(--mira-r) - 8px); top: calc(var(--mira-y) - var(--mira-r) - 8px);
+  border-right: 0; border-bottom: 0; }
+.ar-mira .mira-colch.cd { left: calc(50% + var(--mira-r) - 3px); top: calc(var(--mira-y) - var(--mira-r) - 8px);
+  border-left: 0; border-bottom: 0; }
+.ar-mira .mira-colch.be { left: calc(50% - var(--mira-r) - 8px); top: calc(var(--mira-y) + var(--mira-r) - 3px);
+  border-right: 0; border-top: 0; }
+.ar-mira .mira-colch.bd { left: calc(50% + var(--mira-r) - 3px); top: calc(var(--mira-y) + var(--mira-r) - 3px);
+  border-left: 0; border-top: 0; }
+
+/* a faixa dos alvos fica ACIMA da retícula: o designador do alvo mais
+   distante descia até tocar o anel do centro (visto na bancada a 375 px) */
+.ar-faixa { position: absolute; left: 0; right: 0; top: 19%; height: 170px; }
+/* DESIGNADOR DE ALVO: caixa escura com cantos em colchete, como a marcação
+   de alvo de um HUD. A cor da BORDA continua semântica (o tipo da
+   entrevista); os colchetes são chrome do instrumento. */
+.ar-alvo { position: absolute; text-align: center; color: #fff;
+  background: rgba(11,18,32,.9); border: 1.5px solid #fff; border-radius: 4px;
+  padding: 7px 5px; box-shadow: 0 2px 10px rgba(0,0,0,.55); cursor: pointer;
+  min-height: 48px; box-sizing: border-box; transition: opacity .15s; }
+.ar-alvo.grupo { border-color: #fff; }
+/* O DESTINO na tela da AR: âmbar, a mesma cor da marca dele no mapa, para
+   que as duas telas falem do mesmo alvo com a mesma cor. */
+.ar-alvo.destino { border-color: #ffd21e; box-shadow: 0 0 0 2px rgba(255,210,30,.3), 0 2px 12px rgba(0,0,0,.6); }
+.ar-alvo.destino .canto { border-color: #ffd21e; }
+.ar-alvo.destino b { color: #ffd21e; font-size: 20px; }
+.ar-alvo.destino .cod { color: #ffd21e; }
+.ar-fita .ar-marca.destino { border-color: #ffd21e; color: #ffd21e; }
+.ar-alvo.feicao { border-color: var(--hud); }
+.ar-alvo .canto { position: absolute; width: 8px; height: 8px; border: 2px solid var(--hud); }
+.ar-alvo .canto.ce { left: -4px; top: -4px; border-right: 0; border-bottom: 0; }
+.ar-alvo .canto.cd { right: -4px; top: -4px; border-left: 0; border-bottom: 0; }
+.ar-alvo .canto.be { left: -4px; bottom: -4px; border-right: 0; border-top: 0; }
+.ar-alvo .canto.bd { right: -4px; bottom: -4px; border-left: 0; border-top: 0; }
+/* BICO apontando para baixo: liga a etiqueta à direção, em vez de deixá-la
+   flutuando solta sobre a imagem. `--ponta` é o quanto a CAIXA foi empurrada
+   para caber na tela -- o bico desconta isso e continua no rumo medido, que
+   é o que a fita mostra. Sem ele, caixa e marca discordavam em até 22°. */
+.ar-alvo::after { content: ''; position: absolute; left: calc(50% + var(--ponta, 0px));
+  bottom: -6px;
+  width: 8px; height: 8px; background: rgba(11,18,32,.9);
+  border-right: 1.5px solid; border-bottom: 1.5px solid; border-color: inherit;
+  transform: translateX(-50%) rotate(45deg); }
+.ar-alvo.fixado { border-color: #ffd21e; box-shadow: 0 0 0 2px rgba(255,210,30,.35), 0 2px 12px rgba(0,0,0,.6); }
+.ar-alvo.fixado .canto { border-color: #ffd21e; }
+/* caixa EMPURRADA para caber na tela: o bico continua no rumo medido, e o
+   traço interrompido avisa que a caixa em si não está na direção do alvo */
+.ar-alvo.na-borda { opacity: .85; border-style: dashed; }
+.ar-alvo b { display: block; font-size: 22px; line-height: 1.1; font-weight: 800; font-family: var(--mono); }
+/* "UPA" é rótulo, não dado: corpo pequeno, espaçado, sem peso de título */
+.ar-alvo b.rotulo { font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  opacity: .8; line-height: 1.3; }
+/* o CÓDIGO INTEIRO da feição ou do domicílio: mono, porque é número que se
+   confere dígito a dígito, e ciano porque é identificação, não juízo */
+/* O GEOCÓDIGO NUNCA É CORTADO: a caixa é dimensionada por ele
+   (`arLarguraMinimaDaCaixa`), e não o contrário. Código com "…" no fim não
+   serve para procurar a feição em lugar nenhum. */
+.ar-alvo .cod { display: block; font-family: var(--mono); font-size: 14px;
+  line-height: 1.3; color: var(--hud); letter-spacing: -.2px; font-weight: 700;
+  white-space: nowrap; max-width: 100%; }
+/* texto livre (o rótulo do destino) PODE ser cortado; geocódigo, não */
+.ar-alvo .cod.texto { font-family: var(--fonte); font-size: 12.5px; letter-spacing: 0;
+  overflow: hidden; text-overflow: ellipsis; }
+.ar-alvo .cod:empty { display: none; }
+
+/* PONTO: a mesma etiqueta encolhida, quando nao ha espaco para a caixa
+   (pedido do usuario, 20/09/2026: "simplifique as etiquetas para pontos
+   quando for preciso"). Antes, o que nao coubesse SUMIA. O elemento
+   continua com 48 px de alvo de toque e o disco desenhado tem 32 -- a
+   mesma regra do resto da tela da AR: desenho menor, toque grande. */
+.ar-alvo.ponto { width: 48px; min-height: 48px; height: 48px; padding: 0;
+  background: transparent; border: 0; box-shadow: none;
+  display: flex; align-items: center; justify-content: center; }
+.ar-alvo.ponto .canto, .ar-alvo.ponto .cod,
+.ar-alvo.ponto .end, .ar-alvo.ponto .m { display: none; }
+.ar-alvo.ponto b { width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(11,18,32,.92); border: 2px solid; border-color: inherit;
+  font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.55); }
+.ar-alvo.ponto { border-color: #fff; }
+.ar-alvo.ponto.feicao { border-color: var(--hud); }
+.ar-alvo.ponto::after { bottom: 4px; width: 6px; height: 6px; border-width: 1.5px; }
+.ar-alvo.ponto.fixado b { border-color: #ffd21e; box-shadow: 0 0 0 3px rgba(255,210,30,.3); }
+
+/* SILHUETA DO SETOR (pedido do usuario: "se possivel sejam poligonos").
+   HORIZONTAL = azimute (medido); VERTICAL = distancia, o mais perto
+   embaixo. NAO e perspectiva e nao deve parecer: e a planta do setor vista
+   de onde a pessoa esta, dobrada na tela -- e o que mostra a LARGURA que
+   ele ocupa a frente, coisa que uma caixa de texto nao mostra.
+   `vector-effect: non-scaling-stroke` e obrigatorio aqui: com
+   `preserveAspectRatio="none"` o traco seria esticado junto com a figura e
+   viraria um borrao de espessura desigual. */
+.ar-formas { position: absolute; left: 0; right: 0; top: 19%; height: 170px;
+  pointer-events: none; }
+.ar-forma { position: absolute; bottom: 0; height: 58px; transform: translateX(-50%);
+  pointer-events: auto; cursor: pointer; }
+.ar-forma svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* a MASSA e o que se le de relance; o traco so define a borda. Ao
+   contrario, o desenho vira um rabisco -- foi o que a bancada mostrou na
+   primeira versao. */
+.ar-forma polygon { fill: rgba(142,242,255,.22); stroke: var(--hud);
+  stroke-width: 1.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.ar-forma.feicao polygon { fill: rgba(255,210,30,.18); stroke: #ffd21e; }
+.ar-forma.fixado polygon { fill: rgba(255,210,30,.34); stroke: #fff; stroke-width: 2; }
+/* a etiqueta de um alvo que JA tem silhueta nao precisa repetir a moldura */
+.ar-alvo.com-poli:not(.ponto) { background: rgba(11,18,32,.82); }
+/* a rua é contexto: quem procura vai pelo número e pelo código */
+.ar-alvo .end { display: block; font-size: 11px; opacity: .68;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ar-alvo .m { display: block; font-size: 15px; font-weight: 700; font-family: var(--mono); }
+
+/* CELULAR DEITADO. Primeira prova num aparelho de verdade (20/09/2026):
+   em paisagem sobram ~440 px de altura em CSS, e a faixa de alvos, a
+   retícula e as setas -- todas posicionadas em % da tela -- caíam ATRÁS do
+   cartão do rodapé. As setas, que são o que diz para onde virar, ficavam
+   escondidas justamente quando o alvo está fora do campo de visão. */
+@media (max-height: 560px) {
+  .ar-faixa, .ar-formas { top: 13%; height: 124px; }
+  /* A MIRA NÃO TEM MAIS TAMANHO: ela ocupa a tela inteira e o que muda é o
+     CENTRO e o raio do anel. As três regras que estavam aqui eram da mira
+     antiga (um anel de 34 px) e, com `width`/`height`, venciam o `inset: 0`
+     da nova -- deitado, a mira inteira encolhia para um quadrado de 34 px no
+     canto esquerdo (achado do usuário no aparelho, 20/09/2026: "a mira
+     funciona com o celular na vertical, mas quebra quando vai pra
+     horizontal"). Regra: estilo de paisagem ajusta as VARIÁVEIS da mira,
+     nunca a caixa dela. */
+  .ar-mira { --mira-y: 45%; --mira-r: 17px; }
+  .ar-mira .mira-colch { width: 9px; height: 9px; }
+  .ar-setas { top: 32%; }
+  .ar-alvo { padding: 5px 5px; min-height: 44px; }
+  .ar-alvo b { font-size: 15px; }
+  .ar-acao { font-size: 19px; }
+  .ar-cartao b { font-size: 17px; }
+  .ar-cartao .ar-sub { font-size: 13px; }
+  .ar-rodape { padding-top: 6px; }
+  .ar-fita { height: 38px; }
+  /* explicação é texto que se lê UMA vez: deitado não há altura para ela */
+  .ar-cartao .ar-sub.explica { display: none; }
+  /* deitado, a aferção entra na mesma linha em vez de empilhar */
+  .ar-aferir { margin-top: 0; }
+  .ar-cal { flex-basis: 100%; margin-top: 3px; padding: 3px 8px; }
+  .ar-cal b { font-size: 12.5px; }
+  .ar-cal span { flex-basis: auto; }
+  /* e o que sobra vai para DUAS linhas: a ação e o alvo dividem a primeira,
+     o endereço fica na segunda. Deitado, cada linha do cartão é um pedaço da
+     câmera que some -- e a câmera é o que a AR existe para mostrar. */
+  .ar-cartao { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+  .ar-cartao .ar-acao { margin-bottom: 0; }
+  .ar-cartao .ar-sub { flex-basis: 100%; }
+}
+
+/* --- rodapé: o que se executa */
+.ar-rodape { position: absolute; left: 0; right: 0; bottom: 0; color: #fff; font-size: 12px;
+  padding: 10px calc(12px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom))
+           calc(12px + env(safe-area-inset-left));
+  background: linear-gradient(#0b122000, #0b1220e8 34%); }
+.ar-cartao { position: relative; background: rgba(11,18,32,.92); border-radius: 12px;
+  padding: 8px 46px 9px 11px; border: 1px solid rgba(255,255,255,.1); }
+.ar-cartao:empty { display: none; }
+/* travar/soltar virou pastilha no canto: fora do fluxo do texto, com os
+   48 px de toque que o resto da AR usa */
+.ar-travar { position: absolute; top: 4px; right: 4px; width: 40px; height: 40px;
+  border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: #fff;
+  font-size: 19px; line-height: 1; cursor: pointer; }
+.ar-travar.ativo { background: #ffd21e; color: #0b1220; }
+/* "Gire X°" é o número que a pessoa EXECUTA -- os absolutos são contexto */
+.ar-acao { font-size: 21px; font-weight: 800; line-height: 1.15; margin-bottom: 2px; }
+.ar-acao.alinhado { color: #7ee2a8; }
+/* O ALVO É O QUE SE LÊ DE RELANCE, andando, com o sol na tela: o nome e a
+   distância passaram a corpo de leitura, não de legenda (pedido do usuário,
+   20/09/2026: "use fontes maiores para mostrar dados do alvo"). */
+/* nome e distância dividem a linha e cada um quebra por conta própria: com
+   os dois num texto só, "km" ficava sozinho numa segunda linha */
+.ar-cartao b { font-size: 18px; line-height: 1.2; display: flex; flex-wrap: wrap;
+  align-items: baseline; gap: 2px 10px; justify-content: space-between; }
+.ar-cartao b .alvo-nome { font-family: var(--mono); letter-spacing: -.3px;
+  min-width: 0; overflow-wrap: anywhere; }
+.ar-cartao b .alvo-dist { font-family: var(--mono); color: var(--hud); white-space: nowrap; }
+.ar-sub { font-size: 14px; opacity: .92; margin-top: 3px; line-height: 1.3; }
+/* AFERIÇÃO: medir o erro em vez de estimá-lo a olho */
+.ar-aferir { margin-top: 5px; border: 1px solid var(--hud); background: rgba(142,242,255,.14);
+  color: var(--hud); border-radius: 15px; padding: 5px 12px; font-size: 12.5px;
+  font-weight: 700; cursor: pointer; min-height: 32px; }
+.ar-cal { margin-top: 5px; border-radius: 8px; padding: 5px 9px;
+  background: rgba(20,80,140,.92); color: #fff;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.ar-cal.duvida { background: rgba(240,140,0,.95); color: #1a1206; }
+.ar-cal.ativa { background: rgba(30,142,62,.94); }
+.ar-cal b { font-size: 13.5px; }
+.ar-cal span { font-size: 11.5px; opacity: .92; flex-basis: 100%; }
+.cal-bt { border: 1px solid rgba(255,255,255,.5); background: rgba(255,255,255,.14);
+  color: inherit; border-radius: 13px; padding: 3px 10px; font-size: 12px;
+  font-weight: 700; cursor: pointer; min-height: 28px; }
+.cal-bt.fraco { border-color: rgba(255,255,255,.28); font-weight: 600; }
+.cal-x { margin-left: auto; border: 0; background: rgba(255,255,255,.18);
+  color: inherit; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; }
+.ar-sub.explica { font-size: 12px; opacity: .78; }
+.ar-diag { margin-top: 6px; font-family: var(--mono); font-size: 10px; opacity: .75;
+  word-break: break-all; }
+/* Bússola descalibrada é pendência CONTORNÁVEL: amarelo, não vermelho. O
+   vermelho de antes gastava a cor que o sistema reserva para perda. */
+.aviso-ar { background: rgba(240,140,0,.94); color: #1a1206; border-radius: 8px;
+  padding: 8px 10px; margin-bottom: 8px; font-weight: 600; }
+.aviso-ar.sem-bussola { background: rgba(120,130,125,.94); color: #fff; }
+/* "voltou a funcionar" é desfecho desejado: verde, a cor que o sistema
+   reserva para isso. Aviso que nunca é retirado ensina a ignorar aviso. */
+.aviso-ar.ok { background: rgba(30,142,62,.95); color: #fff; }
+
+/* --- botões: no terço inferior DIREITO, onde o polegar chega */
+/* os botoes sobem acima do rodape, que cresce conforme o estado (o cartao
+   de rumo tem tres linhas quando agrupa): sem isso o X cobria o aviso */
+/* A coluna de botoes subia por um numero fixo de 190px, chutado para o
+   rodape mais alto -- que sobra quando o cartao tem duas linhas e falta
+   quando tem quatro. Agora `--ar-rodape` e a altura MEDIDA do rodape
+   (`ResizeObserver` em mapa.js), e os botoes ficam sempre logo acima dele. */
+.ar-fabs { position: absolute; display: flex; flex-direction: column; gap: 10px;
+  right: calc(10px + env(safe-area-inset-right));
+  bottom: calc(var(--ar-rodape, 190px) + 12px); }
+/* com a ficha de chegada aberta, ela toma o terco inferior: os botoes sobem
+   em vez de ficarem escondidos atras dela */
+.ar-tela.chegou .ar-fabs { bottom: calc(var(--ar-rodape, 190px) + 175px); }
+.ar-fab { width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(11,18,32,.88); color: #fff; display: flex; align-items: center;
+  justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,.5); font-size: 17px; }
+.ar-fab.ativo { background: var(--azul); }
+.ar-fab.ar-fechar { background: rgba(216,57,43,.92); }
+/* SETAS DE INDICAÇÃO (pedido do usuário, 20/09/2026: "use setas de
+   indicação na tela para facilitar a localização"). Antes era um texto
+   discreto e inerte ("◀ 2 · 66°"). Agora é um alvo de toque de 48 px que
+   também EXECUTA: tocar na seta trava no alvo mais próximo daquele lado,
+   que é o gesto de quem está procurando. Com o alvo atrás de quem segura o
+   aparelho, o chevron vira meia-volta -- "gire 170° à direita" manda virar
+   o corpo, e a seta tem de dizer isso. */
+.ar-setas { position: absolute; left: 0; right: 0; top: 56%; display: flex;
+  justify-content: space-between; padding: 0 8px; pointer-events: none; }
+.ar-seta { display: none; }
+.ar-seta.ativa { display: flex; align-items: center; gap: 7px; cursor: pointer;
+  pointer-events: auto; min-height: 48px; padding: 6px 12px; color: #fff;
+  background: rgba(11,18,32,.88); border: 1.5px solid var(--hud);
+  border-radius: 13px; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+.ar-seta.dir { flex-direction: row-reverse; }
+.ar-seta .ar-chevron { font-style: normal; font-size: 30px; line-height: .8;
+  color: var(--hud); font-weight: 700; }
+.ar-seta b { font-family: var(--mono); font-size: 17px; font-weight: 800; }
+.ar-seta span { font-size: 11px; opacity: .85; max-width: 104px; line-height: 1.15;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-seta.atras { border-color: #ffd21e; }
+.ar-seta.atras .ar-chevron { color: #ffd21e; }
+
+/* CARTAO DE CHEGADA -- o desfecho da ferramenta: daqui em diante quem
+   resolve e o numero na fachada. Claro e de texto escuro, porque e o unico
+   bloco que se le PARADO e ao sol, e porque contrasta com a tela escura em
+   volta; a tarja verde e a cor que o sistema reserva para desfecho desejado.
+
+   Ele estava INVISIVEL: duas regras `.ar-perto` haviam sobrado da reescrita
+   de 20/09, a de cima com `color: #fff` e a de baixo com fundo branco. Como
+   a de baixo nao mexia na cor, o titulo, o endereco e as duas linhas de
+   apoio saiam brancos sobre branco -- contraste 1:1. */
+.ar-perto { position: absolute; left: 12px; right: 12px; color: var(--texto);
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  background: #fff; border-radius: 14px; padding: 14px 14px 14px 18px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.45); border-left: 5px solid var(--verde); }
+.ar-perto h3 { margin: 0 0 6px; font-size: 16px; color: var(--azul-escuro); }
+.ar-perto .ar-sub { color: var(--texto-2); opacity: 1; }
+.ar-botoes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+/* Grade de dias, refeita em 19/09/2026 (ver `paginas_extra.js`). A marca de
+   dia sem expediente virou uma BARRA no topo da célula: como fundo, ela era
+   apagada pelo `style` inline do preenchimento -- e sumia justamente na
+   célula em que alguém trabalhou no feriado, que é o caso a olhar. */
+.matriz-dias .sem-exp-marca { box-shadow: inset 0 3px 0 #e8b400; }
+.matriz-dias .trabalhou-folga { outline: 2px solid #d93025; outline-offset: -2px; }
+.matriz-dias td.ag { text-align: left; white-space: nowrap; font-size: 10.5px; color: var(--texto-2); max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+.matriz-dias .linha-barras th { padding: 0 2px 2px; vertical-align: bottom; height: 30px; }
+.matriz-dias .barra-dia { display: block; width: 100%; min-width: 6px; background: var(--azul); border-radius: 2px 2px 0 0; }
+.matriz-dias .linha-barras th:first-child, .matriz-dias .linha-barras th:nth-child(2) { background: #fff; }
+.legenda-dias .amostra.sem-exp-marca { box-shadow: inset 0 3px 0 #e8b400; background: #fff; border: 1px solid var(--borda); }
+.legenda-dias .amostra.trabalhou-folga { outline: 2px solid #d93025; outline-offset: -2px; background: #fff; }
+/* a segunda coluna (agência) também congela ao rolar na horizontal */
+.matriz-dias thead th:nth-child(2), .matriz-dias tbody td:nth-child(2), .matriz-dias tfoot th:nth-child(2) {
+  position: sticky; left: 120px; z-index: 2; background: #fff; }
+.matriz-dias thead th:nth-child(2) { z-index: 4; background: var(--fundo-2); }
+
+/* Ícones SVG de traço (19/09/2026): `.ico` deixou de ser um caractere de
+   texto e passou a ser uma caixa que centra o desenho. `stroke: currentColor`
+   faz o ícone seguir a cor do item -- inclusive o azul do item ativo -- sem
+   uma segunda regra de cor para cada estado. */
+.ico { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: 0 0 20px; }
+.ico svg { display: block; }
+/* ÍCONE DE PENDÊNCIA / AÇÃO em tabela (19/09/2026). As duas colunas de texto
+   ("Pendências" e "Ação recomendada") faziam uma linha de tabela ocupar meia
+   tela: quatro pendências viravam 12 linhas de texto quebrado em coluna
+   estreita, e as linhas vizinhas ficavam a páginas de distância. */
+.pend-icos { display: flex; gap: 4px; align-items: center; }
+.pend-ico { display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px; cursor: help; flex: 0 0 26px;
+  border: 1px solid currentColor; background: #fff; }
+.pend-ico:hover, .pend-ico:focus-visible { filter: brightness(.92); outline: none; box-shadow: 0 0 0 2px rgba(26,86,196,.25); }
+@media (max-width: 700px) { .pend-ico { width: 32px; height: 32px; flex-basis: 32px; } }
+/* a dica nasce no body (fora do `overflow` da tabela) e se posiciona por JS */
+.dica-flut { position: fixed; z-index: 3000; max-width: 380px; background: #14201a; color: #fff;
+  border-radius: 9px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45;
+  box-shadow: 0 6px 24px rgba(10,20,15,.35); opacity: 0; transition: opacity .1s ease; pointer-events: none; }
+.dica-flut.visivel { opacity: 1; }
+.dica-flut b { display: block; margin-bottom: 2px; }
+.dica-flut .acao { display: block; color: #bfe3cd; margin-top: 4px; }
+.dica-flut .item + .item { margin-top: 8px; border-top: 1px solid rgba(255,255,255,.15); padding-top: 8px; }
+.btn-menu svg { display: block; }
+.mapa-fab svg { width: 22px; height: 22px; }
+
+/* Foto de perfil da conta do IBGE (19/09/2026). A caixa é a mesma da
+   inicial: quando a imagem carrega, ela entra por dentro e o círculo não
+   muda de tamanho -- o cabeçalho não "pula" quando a foto chega. */
+.usuario .ini.com-foto { padding: 0; overflow: hidden; background: none; }
+.usuario .ini img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+
+/* ---- Porte do SuperC PNS-26 (24/10/2026) ---- */
+/* rótulos de grupo na barra de filtros; recolhida, só os filtros ATIVOS */
+body.filtros-recolhidos:not(.filtros-sem-recolher) .filtros .filtro-grupo { display: none; }
+.filtros .filtro-grupo { flex-basis: 100%; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--texto-2); margin: 6px 2px 0; padding-top: 4px; border-top: 1px solid var(--borda); }
+.filtros .filtro-grupo:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+/* "?" com a definição do número, no canto do KPI */
+.kpi { position: relative; }
+.kpi .kpi-ajuda { position: absolute; top: 4px; right: 6px; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--borda);
+  color: var(--texto-2); background: var(--fundo-2); font-size: 10px; line-height: 13px; text-align: center; cursor: help; opacity: .7; }
+.kpi .kpi-ajuda:hover { opacity: 1; }
+@media (pointer: coarse) { .kpi .kpi-ajuda { width: 22px; height: 22px; line-height: 20px; font-size: 12px; } }
+/* sigla da pesquisa ao lado do nome, no cabeçalho */
+.topo h1 .marca-pesquisa { font-size: .62em; font-weight: 700; letter-spacing: .04em; padding: .1em .45em; border-radius: 6px; background: var(--azul-escuro); color: #fff; vertical-align: middle; }
+/* DESTAQUE (tela cheia por cartão; app/js/infra.js) */
+/* ======================================================== DESTAQUE (tela cheia)
+   Botão em todo .cartao com gráfico/tabela/mapa (criado por pns_infra.js). O
+   cartão em destaque sai do fluxo (position: fixed) e fica ACIMA do menu e do
+   topo (1200) e ABAIXO dos modais (2000) e avisos (3000). Os contêineres
+   ancestrais sobem o próprio empilhamento (.destaque-ancestral) porque
+   .conteudo é um contexto de empilhamento com z-index 1. */
+.cartao.tem-destaque { position: relative; }
+.cartao.tem-destaque > h3 { padding-right: 34px; }
+.btn-destaque, .btn-destaque-x { position: absolute; top: 6px; right: 6px; z-index: 6; width: 28px; height: 28px; padding: 0;
+  display: inline-grid; place-items: center; border: 1px solid transparent; border-radius: 7px; background: transparent;
+  color: var(--texto-2); cursor: pointer; opacity: .32; transition: opacity .15s, background .15s, color .15s; }
+.cartao:hover > .btn-destaque, .btn-destaque:focus-visible, .btn-destaque-x:focus-visible { opacity: 1; background: var(--cartao); border-color: var(--borda); }
+.btn-destaque:hover, .btn-destaque-x:hover { opacity: 1; background: var(--azul-claro); color: var(--azul-escuro); border-color: var(--borda); }
+.btn-destaque:focus-visible, .btn-destaque-x:focus-visible { outline: 2px solid var(--azul); outline-offset: 1px; }
+@media (hover: none) { .btn-destaque { opacity: .7; } }
+.btn-destaque-x { display: none; }
+.destaque-ancestral { z-index: 1900 !important; }
+body.destaque-travado .conteudo { overflow: hidden; }
+.cartao.em-destaque { position: fixed; inset: 0; z-index: 1900; width: auto; height: auto; max-width: none !important; margin: 0 !important;
+  border: 0; border-radius: 0; box-shadow: none; background: var(--cartao); padding: 14px 20px 20px; overflow: auto;
+  display: flex; flex-direction: column; gap: 8px; grid-column: auto !important; }
+.cartao.em-destaque > h3 { font-size: 16px; padding-right: 100px; margin-bottom: 4px; }
+.cartao.em-destaque > .btn-destaque, .cartao.em-destaque > .btn-destaque-x { position: fixed; top: 10px; opacity: 1; background: var(--cartao); border-color: var(--borda); }
+.cartao.em-destaque > .btn-destaque { right: 52px; }
+.cartao.em-destaque > .btn-destaque-x { right: 14px; display: inline-grid; }
+.cartao.em-destaque .grafico { min-height: calc(100dvh - 130px); }
+.cartao.em-destaque .tabela-wrap, .cartao.em-destaque .tabela-wrap.alta { max-height: calc(100dvh - 140px) !important; }
+.cartao.em-destaque .leaflet-container { min-height: calc(100dvh - 130px); }
+/* balão com o nome da página ao lado do ícone, com o menu recolhido (app.js, ligarGaveta) */
+#tip-nav { position: fixed; display: none; z-index: 3000; background: #1f2a37; color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 600; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
