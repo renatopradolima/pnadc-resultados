@@ -293,7 +293,7 @@ JS_ROTEIRO = r"""
         V.entenda = { cartoes: c.querySelectorAll('.mo-cartao').length, figuras: c.querySelectorAll('.ent-fig, .ent-rot, .ent-tempo, .ent-fluxo').length,
           conceitos: ['força de trabalho', 'desalentadas', 'Desocupadas', 'Subocupadas por insuficiência de horas', 'Força de trabalho potencial', 'rotação 1-2(5)', 'Taxa composta de subutilização', 'Fontes e referências'].filter(x => tx.indexOf(x) >= 0).length,
           links: Array.from(c.querySelectorAll('.ent-fontes a')).map(a => a.getAttribute('href')), refs: c.querySelectorAll('.ent-ref').length,
-          exemplo: /Com os números mais recentes do Brasil/.test(tx), sem_sorteio: !/sorte/i.test(tx), menu: Array.from(document.querySelectorAll('#nav a[data-pagina]')).map(a => a.textContent.trim() + (a.classList.contains('ativo') ? '*' : '')) }; }
+          exemplo: /Com os números mais recentes do Brasil/.test(tx), sem_sorteio: !/sorte/i.test(tx), icones: new Set(Array.from(document.querySelectorAll('#nav a[data-pagina] .ico svg')).map(x => x.innerHTML)).size, menu: Array.from(document.querySelectorAll('#nav a[data-pagina]')).map(a => a.textContent.trim() + (a.classList.contains('ativo') ? '*' : '')) }; }
 
       // ---- Comparar: várias variáveis no mesmo gráfico (um eixo, dois eixos ou índice base 100, conforme as unidades)
       {
@@ -560,6 +560,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
                 (rotulo + ': página "Entenda a PNADC" com cartões, figuras, conceitos e referências (%r)') % ({k: v for k, v in en.items() if k not in ('links', 'menu')},))
     ctx.confere(len(en.get('links') or []) >= 9 and all(l.startswith('https://') or l.startswith('http://www.ilo.org/') for l in en['links']) and all('ibge.gov.br' in l or 'ilo.org' in l for l in en['links']),
                 (rotulo + ': fontes oficiais com link (IBGE e OIT) (%r)') % (en.get('links'),))
+    ctx.confere(en.get('icones') == 5, (rotulo + ': cada item do menu tem um ícone diferente (%r distintos de 5)') % (en.get('icones'),))
     ctx.confere(en.get('menu') == ['Resultados', 'Comparar períodos', 'Gerar release', 'Entenda a PNADC*', 'Sobre'], (rotulo + ': "Entenda a PNADC" fica acima de "Sobre" no menu (%r)') % (en.get('menu'),))
 
     mu = v2.get('multi') or {}

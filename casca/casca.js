@@ -232,7 +232,7 @@ const CASCA = (() => {
     // marca e ícones da moldura (o kit não tem os ícones novos): o menu passa a usá-los
     const marca = document.querySelector('.topo .marca');
     if (marca && !marca.querySelector('svg')) { const l = MOLDURA.logo(38); l.style.flex = '0 0 auto'; marca.insertBefore(l, marca.firstChild); }
-    const ICONE_MENU = { publicacoes: 'grafico', comparar: 'comparar', release: 'texto', entenda: 'info', sobre: 'livro' };
+    const ICONE_MENU = { publicacoes: 'grafico', comparar: 'comparar', release: 'texto', sobre: 'livro' };
     document.querySelectorAll('#nav a[data-pagina]').forEach(a => { const ic = a.querySelector('.ico'); if (ic && ICONE_MENU[a.dataset.pagina]) ic.replaceChildren(MOLDURA.icone(ICONE_MENU[a.dataset.pagina], 18)); });
     U.aplicarIcones(document.getElementById('nav'));
     const rodape = document.getElementById('nav-rodape');
