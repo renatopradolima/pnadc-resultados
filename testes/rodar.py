@@ -415,10 +415,11 @@ def main():
     import cenarios_montar as CM
     import casca as CA
     import responsivo as RE
+    import medicao as ME
     ctx = sys.modules[__name__]
     todos = [('sidra', teste_sidra), ('catalogo', lambda: CEN.teste_catalogo(ctx)),
              ('cenarios', lambda: CEN.teste_cenarios(ctx)), ('montar', lambda: CM.teste_montar(ctx)),
-             ('casca', lambda: CA.teste_casca(ctx)), ('responsivo', lambda: RE.teste_responsivo(ctx)), ('entregue', lambda: CA.teste_entregue(ctx))]
+             ('casca', lambda: CA.teste_casca(ctx)), ('responsivo', lambda: RE.teste_responsivo(ctx)), ('medicao', lambda: ME.teste_medicao(ctx)), ('entregue', lambda: CA.teste_entregue(ctx))]
     pedidos = sys.argv[1:]
     for nome, fn in todos:
         if not pedidos or nome in pedidos:

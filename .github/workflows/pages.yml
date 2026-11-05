@@ -30,6 +30,12 @@ jobs:
           python-version: '3.12'
       - name: Gerar o arquivo único como index.html
         run: python -I scripts/construir.py --saida site/index.html
+      # Medição de acessos (Cloudflare Web Analytics, sem cookies), SÓ na cópia publicada. Para ligar: Settings → Secrets and variables → Actions → Variables →
+      # CF_BEACON_TOKEN = o token do site no Cloudflare. Sem a variável, nada é inserido. O arquivo baixado (dist/) nunca é medido.
+      - name: Medição de acessos da página (opcional)
+        env:
+          CF_BEACON_TOKEN: ${{ vars.CF_BEACON_TOKEN }}
+        run: python -I scripts/injetar_medicao.py site/index.html "$CF_BEACON_TOKEN"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

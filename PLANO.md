@@ -344,3 +344,9 @@ Pendente: README final/LICENSE para o GitHub (ver `docs/PUBLICAR_NO_GITHUB.md`) 
 - **Grade equilibrada** (`MOLDURA.gradeEquilibrada`): os cartões-resumo se repartem por igual entre as linhas (8 cartões em tela larga = 4 + 4, nunca
   6 + 2). Regra geral para toda grade de cartões: calcular quantos cabem, fixar o número de linhas e dividir por igual. `testes/responsivo.py` falha se
   duas linhas diferirem em mais de um cartão.
+
+## 17. Medição de acessos da página publicada (04/11/2026)
+- Cloudflare Web Analytics (sem cookies, sem dado pessoal), SÓ na cópia do GitHub Pages: o workflow `pages.yml` roda `scripts/injetar_medicao.py site/index.html`
+  com a variável de repositório `CF_BEACON_TOKEN` (token público do site no Cloudflare). Sem a variável, não insere nada. O arquivo distribuído (`dist/`)
+  nunca é medido; o teste `medicao` falha se aparecer código de rastreamento nele.
+- A página "Sobre" avisa o visitante, só quando aberta em `*.github.io`. O Insights → Traffic do GitHub mede só o repositório (código), não a página.

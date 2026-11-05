@@ -333,7 +333,8 @@ JS_ROTEIRO = r"""
       // ---- barra de valor ZERO (ex.: UF igual ao Brasil em "Dif. ao Brasil") não pode sumir: traço na base e rótulo "0,0"
       { const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:0;top:0;width:600px;height:300px;background:#fff;z-index:1'; document.body.appendChild(box);
         const cvz = G.canvasEm(box, 'grafico'), chz = MOLDURA.estilizar(G.barras(cvz, { labels: ['A', 'B', 'C'], valores: [0, 1.5, -1], horizontal: true, formato: v => (v === 0 ? '0,0 p.p.' : String(v)) }));
-        await espera(700); const chv = MOLDURA.estilizar(G.barras(G.canvasEm(box, 'grafico'), { labels: ['A', 'B'], valores: [0, 2], formato: v => String(v) })); await espera(700);
+        await espera(1500); const chv = MOLDURA.estilizar(G.barras(G.canvasEm(box, 'grafico'), { labels: ['A', 'B'], valores: [0, 2], formato: v => String(v) })); await espera(1500);
+        chz.draw(); chv.draw();   // desenho síncrono: o teste não depende do relógio das animações
         V.zeros = { horizontal: chz._zerosDesenhados, vertical: chv._zerosDesenhados }; box.remove(); }
       // ---- NENHUM rótulo sobre outro nem fora da imagem: todos os mapas e gráficos de linha dos slides
       await ir('#/publicacoes?sec=uf'); await espera(300);
@@ -509,6 +510,7 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     rel10 = r.get('release10') or {}
     ctx.confere(rel10.get('raiz'), (rotulo + ': o passo 10 do assistente desenha (%r)') % (rel10,))
     ctx.confere('Versão do núcleo' in (r.get('sobre') or '') and 'Armazenamento' in (r.get('sobre') or ''), rotulo + ': página Sobre')
+    ctx.confere('Cloudflare' not in (r.get('sobre') or ''), rotulo + ': fora do github.io a página Sobre não fala em medição (o arquivo local não mede nada)')
 
     v = r.get('visual') or {}
     ctx.confere(v.get('hero') and 'significância' not in (v.get('subtitulo') or '') and v.get('subtitulo') and 'PNAD' not in v.get('subtitulo'),

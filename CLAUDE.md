@@ -11,7 +11,9 @@ Arquivo de entrada: duplo clique em `dist/PNADC_Resultados.html`. Plano completo
   (arquivo autônomo e `#/publicacoes` do SuperC); diários atualizados.
 - **Rede**: só a API pública de agregados do IBGE; no máximo uma consulta por tabela a cada 12 h; falha
   de rede pausa 15 min; o cache nunca é apagado; testes nunca usam rede (respostas em `testes/gravados/`).
-- **Sem dado pessoal, sem login, sem servidor** no produto final.
+- **Sem dado pessoal, sem login, sem servidor** no produto final. Única exceção, só na PÁGINA publicada no GitHub Pages (nunca no `dist/` que se distribui):
+  medição de acessos pelo Cloudflare Web Analytics (sem cookies), inserida pelo workflow `pages.yml` via `scripts/injetar_medicao.py` quando a variável
+  `CF_BEACON_TOKEN` do repositório existe. O teste `medicao` garante que `dist/` não tem rastreamento.
 - **Cor só da situação publicada** pelo IBGE (Z significativa, A estável, `-` sem comparação); CV sempre
   à vista; trimestre móvel só Brasil; texto de dado como nó de texto, nunca HTML.
 - **JavaScript sem `??` nem `?.`** (a conferência de sintaxe do projeto não os lê). Sem `node` nesta

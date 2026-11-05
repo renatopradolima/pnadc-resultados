@@ -67,6 +67,7 @@ const CASCA = (() => {
       li('Fonte única: a API pública de agregados do IBGE (servicodados.ibge.gov.br), a mesma base do SIDRA. Sem chave, sem login.'),
       li('Os pedidos ao IBGE saem só quando você abre a página com o cache vencido ou aperta "Atualizar com o IBGE": no máximo uma consulta por tabela a cada 12 horas. Se a rede falha, nada é apagado e o programa espera 15 minutos antes de tentar de novo.'),
       li('Não há servidor nem dado pessoal. Tudo o que é baixado fica guardado neste navegador.'),
+      ...(/\.github\.io$/.test(location.hostname) ? [li('Só esta página publicada (github.io) conta acessos, com o Cloudflare Web Analytics: sem cookies e sem dado pessoal, só visitas, páginas e origens. O arquivo HTML baixado não envia nada.')] : []),
       li('A primeira abertura baixa as 16 tabelas (de alguns segundos a poucos minutos, com a página se atualizando sozinha); depois só confere se há período novo.'))));
     cont.append(cartaoSobre('Esta cópia', 'pin', ul(
       li('Versão do núcleo: ', U.el('b', {}, typeof VERSAO_NUCLEO !== 'undefined' ? VERSAO_NUCLEO : '?'),
