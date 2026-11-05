@@ -366,9 +366,27 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
         sc.border.display = false;
         sc.ticks.color = TXT; sc.ticks.font = { size: 12 };
       });
+      const longa = ch.config.type === 'line' && (ch.data.labels || []).length > 16 && opc.longa !== false;
+      if (longa) {
+        // série longa (anos de trimestres): a bolinha em cada ponto pica a linha; o olho precisa da forma, do último valor e de uma leitura limpa
+        o.interaction = { mode: 'index', intersect: false };
+        o.layout = { padding: { top: 10, right: (ch.scales && ch.scales.y1) ? 6 : 62, bottom: 2 } };
+        if (o.scales.y) o.scales.y.grid.color = '#e3ebf1';
+        const rots = ch.data.labels || [], ehTri = rots.every(l => /^\dT\d\d$/.test(String(l)));
+        if (ehTri && o.scales.x) {
+          o.scales.x.ticks.autoSkip = false; o.scales.x.ticks.maxRotation = 0;
+          o.scales.x.ticks.callback = function (v) { const l = String(this.getLabelForValue(v)); return /^1T/.test(l) ? '20' + l.slice(2) : ''; };
+          o.scales.x.grid.color = 'transparent';
+        }
+      }
       (ch.data.datasets || []).forEach((d, i) => {
         if (ch.config.type === 'line') {
-          d.borderWidth = d.borderDash ? 2.4 : 3; d.tension = 0.32; d.pointBorderWidth = 2; d.pointHoverRadius = 7;
+          d.borderWidth = d.borderDash ? 2.2 : (i === 0 ? 3 : 2.4); d.tension = 0.32; d.pointBorderWidth = 2; d.pointHoverRadius = 6;
+          if (longa) {
+            let ult = -1; (d.data || []).forEach((v, k) => { if (v !== null && v !== undefined) ult = k; });
+            d.pointRadius = c => (c.dataIndex === ult ? 4.5 : 0); d.pointHoverRadius = 5.5; d.pointBorderColor = '#fff'; d.pointBorderWidth = 2;
+            d.pointBackgroundColor = typeof d.borderColor === 'string' ? d.borderColor : undefined;
+          }
           const cor = d.borderColor;
           if (opc.area !== false && i === 0 && typeof cor === 'string') {
             d.fill = true;
@@ -726,7 +744,32 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
     });
     ch._zerosDesenhados = n;
   } };
-  if (typeof Chart !== 'undefined' && Chart.register) { try { Chart.register(pluginBandeiras); Chart.register(pluginZeros); } catch (e) { /* já registrado */ } }
+  /* SÉRIE LONGA (só quando o estilizar marcou `longa`): cruz vertical de leitura no ponto sob o mouse e o último valor ao fim de cada linha (sem se sobreporem) */
+  const pluginLeitura = { id: 'leituraSerie',
+    afterDatasetsDraw(ch) {
+      if (ch.config.type !== 'line' || (ch.data.labels || []).length <= 16 || ch.options.interaction.mode !== 'index' || (ch.scales && ch.scales.y1)) return;   // com dois eixos a direita o eixo ocupa esse lugar
+      const ctx = ch.ctx, a = ch.chartArea, cb = ch.config.options && ch.config.options.plugins && ch.config.options.plugins.tooltip && ch.config.options.plugins.tooltip.callbacks;
+      const texto = (d, k) => { try { const s = cb && cb.label ? String(cb.label({ dataset: d, raw: d.data[k], parsed: { y: d.data[k] }, dataIndex: k })) : String(d.data[k]); const i = s.indexOf(': '); return i >= 0 ? s.slice(i + 2) : s; } catch (e) { return ''; } };
+      const itens = [];
+      ch.data.datasets.forEach((d, k) => {
+        const meta = ch.getDatasetMeta(k); if (meta.hidden) return;
+        let ult = -1; (d.data || []).forEach((v, j) => { if (v !== null && v !== undefined) ult = j; });
+        const el = ult >= 0 ? meta.data[ult] : null; if (!el) return;
+        itens.push({ x: el.x, y: el.y, cor: typeof d.borderColor === 'string' ? d.borderColor : '#243b53', t: texto(d, ult) });
+      });
+      itens.sort((p, q) => p.y - q.y);
+      for (let i = 1; i < itens.length; i++) if (itens[i].y - itens[i - 1].y < 14) itens[i].y = itens[i - 1].y + 14;    // sem rótulo sobre rótulo
+      ctx.save(); ctx.font = '700 11.5px "Segoe UI", system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      itens.forEach(it => { if (!it.t) return; ctx.fillStyle = it.cor; ctx.fillText(it.t, it.x + 9, it.y); });
+      ctx.restore();
+    },
+    afterDraw(ch) {
+      if (ch.config.type !== 'line' || (ch.data.labels || []).length <= 16 || ch.options.interaction.mode !== 'index' || !ch.tooltip) return;
+      const ativos = ch.tooltip.getActiveElements ? ch.tooltip.getActiveElements() : []; if (!ativos.length) return;
+      const x = ativos[0].element.x, a = ch.chartArea, ctx = ch.ctx;
+      ctx.save(); ctx.strokeStyle = 'rgba(36,59,83,.35)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.stroke(); ctx.restore();
+    } };
+  if (typeof Chart !== 'undefined' && Chart.register) { try { Chart.register(pluginBandeiras); Chart.register(pluginZeros); Chart.register(pluginLeitura); } catch (e) { /* já registrado */ } }
   function bandeirasNoEixo(ch, codigos, altura) {
     if (!ch || typeof BANDEIRAS === 'undefined') return ch;
     const h = altura || 14;

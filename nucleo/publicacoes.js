@@ -34,6 +34,8 @@
 
 const PUBLICACOES = (() => {
   let D = null, carregando = null, erro = null, espera = null, velho = true;
+  let ultimaInteracao = 0;
+  if (typeof document !== 'undefined') ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { ultimaInteracao = Date.now(); }, { passive: true, capture: true }));
   /* Escala de precisão do IBGE pelo CV (o servidor manda a mesma, em
      `precisao_cv`; esta é a reserva para cache antigo). */
   const ESCALA_CV = [{ ate: 5, classe: 'ótima' }, { ate: 15, classe: 'boa' }, { ate: 30, classe: 'razoável' },
@@ -91,11 +93,15 @@ const PUBLICACOES = (() => {
     // no gerador de releases o redesenho apagaria o que está sendo digitado: lá o cache é
     // renovado em silêncio e entra no próximo passo
     const naRelease = () => /[?&]sec=release/.test(location.hash || '');
+    // Redesenhar a página inteira a cada 5 s enquanto as tabelas chegam trava o clique de quem está usando (o relatório de acessos mostrou um
+    // clique de 2,2 s) e fecha a tela cheia aberta: se há tela cheia ou houve toque/tecla nos últimos 4 s, o redesenho espera mais um pouco.
+    const ocupado = () => (typeof MOLDURA !== 'undefined' && MOLDURA._cheiaAberta && MOLDURA._cheiaAberta()) || (Date.now() - ultimaInteracao < 4000);
+    const adiar = () => { espera = setTimeout(() => { if (!naPagina()) return; if (ocupado()) adiar(); else AMBIENTE.renderizar(); }, 2000); };
     if (D && D.atualizando) espera = setTimeout(() => {
       if (!naPagina()) return;
       carregar().then(() => {
         if (!naPagina()) return;
-        if (!naRelease()) { AMBIENTE.renderizar(); return; }
+        if (!naRelease()) { if (ocupado()) adiar(); else AMBIENTE.renderizar(); return; }
         // no gerador só a LINHA DE ESTADO é refeita (o assistente fica como está); sem isto ela ficava
         // em "consultando o IBGE" para sempre depois da primeira consulta (achado no teste, 26/10/2026)
         const velha = AMBIENTE.mostrarStatus ? document.getElementById('conteudo') : document.querySelector('#conteudo .mini-info');
@@ -303,7 +309,7 @@ const PUBLICACOES = (() => {
     const emVar = ctx.modo === 'var';
     const cv = G.canvasEm(cont, ctx.cheia ? 'mo-grafico-cheio' : 'mo-grafico alto');
     const ch = G.linha(cv, { labels, series: defs.map(d => ({ rotulo: d.rotulo, dados: emVar ? d.va : d.v, cor: d.cor, tracejado: d.tracejado })),
-      formato: v => (emVar ? fmtD(ind, v) : fmtV(ind, v)), doZero: emVar });
+      formato: v => (emVar ? fmtD(ind, v) : fmtV(ind, v)), doZero: emVar ? false : ind.tipo === 'taxa' });
     return MOLDURA.estilizar(ch);
   }
   /* cartão de série temporal (nível x variação) */

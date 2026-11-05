@@ -330,6 +330,11 @@ JS_ROTEIRO = r"""
         const cr = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(x => /Ranking das UFs — Taxa/.test(x.innerText)), cht = cr && Chart.getChart(cr.querySelector('canvas'));
         V.ranking_ufs = { n: cht ? cht.data.labels.length : 0, linhas_tabela: document.querySelectorAll('#conteudo table.tabela tbody tr').length, aviso: /Sem valor publicado neste período/.test(document.getElementById('conteudo').innerText),
           zeros: cht ? cht.data.datasets[0].data.filter(v => v === 0).length : -1 }; }
+      // ---- série longa: sem bolinha em cada ponto, eixo da taxa a partir do zero, ano no eixo x
+      { await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(500);
+        const cs = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(x => x.querySelector('.mo-faixa')), chl = cs && Chart.getChart(cs.querySelector('canvas'));
+        V.serie_longa = chl ? { n: chl.data.labels.length, pontos_escondidos: typeof chl.data.datasets[0].pointRadius === 'function' && chl.data.datasets[0].pointRadius({ dataIndex: 3 }) === 0, ultimo: typeof chl.data.datasets[0].pointRadius === 'function' && chl.data.datasets[0].pointRadius({ dataIndex: chl.data.labels.length - 1 }) > 0,
+          zero: chl.scales.y.min === 0, anos: chl.options.scales.x.ticks.callback.call(chl.scales.x, 0) === '2012' && chl.options.scales.x.ticks.callback.call(chl.scales.x, 1) === '' } : null; }
       // ---- barra de valor ZERO (ex.: UF igual ao Brasil em "Dif. ao Brasil") não pode sumir: traço na base e rótulo "0,0"
       { const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:0;top:0;width:600px;height:300px;background:#fff;z-index:1'; document.body.appendChild(box);
         const cvz = G.canvasEm(box, 'grafico'), chz = MOLDURA.estilizar(G.barras(cvz, { labels: ['A', 'B', 'C'], valores: [0, 1.5, -1], horizontal: true, formato: v => (v === 0 ? '0,0 p.p.' : String(v)) }));
@@ -458,6 +463,7 @@ def validar_documentos(ctx, arq, rotulo):
 def pathlib_uri(p):
     import pathlib
     return pathlib.Path(p).as_uri()
+
 
 
 def teste_entregue(ctx):
@@ -598,6 +604,8 @@ def teste_casca(ctx, html=None, rotulo='casca'):
                 (rotulo + ': 28 bandeiras distintas, reconhecidas por código, sigla ou nome (%r)') % ({k: v for k, v in bd.items() if not k.startswith('grade_')},))
     ctx.confere(bd.get('abas', 0) >= 2 and bd.get('cabecalho') and bd.get('tabela', 0) >= 27 and bd.get('sem_rede'), (rotulo + ': bandeira nas abas Brasil e UF, ao lado do seletor e na tabela do ranking, todas embutidas (%r)') % ({k: bd.get(k) for k in ('abas', 'cabecalho', 'tabela', 'sem_rede')},))
     ctx.confere(all(g['ok'] for k in ('grade_brasil', 'grade_uf', 'grade_capitais') for g in bd.get(k, [])) and bd.get('grade_uf'), (rotulo + ': cartões-resumo equilibrados por linha (%r)') % ({k: v for k, v in bd.items() if k.startswith('grade_')},))
+    sl2 = v2.get('serie_longa') or {}
+    ctx.confere(sl2.get('n', 0) > 40 and sl2.get('pontos_escondidos') and sl2.get('ultimo') and sl2.get('zero') and sl2.get('anos'), (rotulo + ': série longa sem bolinhas, só o último ponto marcado, eixo da taxa no zero e anos no eixo (%r)') % (sl2,))
     rk2 = v2.get('ranking_ufs') or {}
     ctx.confere(rk2.get('n') == 27 or rk2.get('aviso'), (rotulo + ': ranking mostra as 27 UFs ou diz quais faltam (%r)') % (rk2,))
     zz = v2.get('zeros') or {}

@@ -350,3 +350,15 @@ Pendente: README final/LICENSE para o GitHub (ver `docs/PUBLICAR_NO_GITHUB.md`) 
   com a variável de repositório `CF_BEACON_TOKEN` (token público do site no Cloudflare). Sem a variável, não insere nada. O arquivo distribuído (`dist/`)
   nunca é medido; o teste `medicao` falha se aparecer código de rastreamento nele.
 - A página "Sobre" avisa o visitante, só quando aberta em `*.github.io`. O Insights → Traffic do GitHub mede só o repositório (código), não a página.
+
+## 18. Desempenho: leitura do relatório do Cloudflare e gráfico de série longa (05/11/2026)
+- **Relatório (24 h, só visitas de pessoas, ~20 amostras)**: LCP 95% bom (P50 173 ms, P75 546 ms, P90 1,2 s, P99 3,4 s; no P75 o tempo é 448 ms de resposta do servidor e 501 ms
+  de atraso de desenho: análise e execução do JavaScript, não rede nem imagem); INP 88% bom, 6% a melhorar e 6% ruim (um clique de 2,2 s num botão do cartão de gráfico);
+  CLS 100% bom. Medição própria na página publicada: resposta em ~300 ms, 325 KB transferidos (1.024 KB descomprimidos), DOMContentLoaded em ~830 ms (~400 ms de script).
+- **Feito**: (1) enquanto as 16 tabelas chegam (primeira visita), a página inteira era redesenhada a cada 5 s, o que trava cliques e fecha a tela cheia: agora o redesenho espera
+  se houver tela cheia ou toque/tecla nos últimos 4 s; (2) gráfico de série longa mais leve (ver abaixo).
+- **Medido e NÃO adotado**: minificar JS e CSS reduz 994 KB para ~800 KB (312 KB para ~255 KB comprimido), mas o `rjsmin` estraga template literals (o teste da casca pegou: XML do Word/ODT
+  inválido). Se for adotar, só com minificador de verdade (esbuild/terser, que precisam de node: no GitHub Actions há), com o roteiro completo da casca rodando sobre a versão minificada.
+- **Próximos candidatos**: carregar sob demanda os módulos de uso raro (release, apresentação, PDF, Word/ODT: quase metade do JavaScript); desenhar primeiro a área visível.
+- **Série longa** (`MOLDURA.estilizar`, mais de 16 pontos): sem bolinha em cada ponto (só o último), linhas de apoio mais finas, anos no eixo x, eixo da taxa a partir do zero,
+  cruz de leitura e último valor ao fim de cada linha (sem sobreposição; não com dois eixos). Teste `V.serie_longa`.
