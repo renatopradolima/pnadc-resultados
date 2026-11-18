@@ -330,18 +330,20 @@ JS_ROTEIRO = r"""
       { await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(600);
         const BOTAO = '.mo-btn[title^="Baixar como imagem"], .mo-btn[data-mo-dica^="Baixar como imagem"]';
         const cartoes = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).filter(c => c.querySelector('canvas') && c.querySelector(BOTAO));
-        const lerImg = bl => new Promise(res => { const fr = new FileReader(); fr.onload = () => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = fr.result; }; fr.onerror = () => res(null); fr.readAsDataURL(bl); setTimeout(() => res(null), 20000); });
-        const tinta = async bl => { const im = await lerImg(bl); if (!im) return { sem_leitura: true }; const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
-          const c = cv.getContext('2d'); c.drawImage(im, 0, 0); const y0 = Math.round(im.height * 0.25), y1 = Math.round(im.height * 0.75), d = c.getImageData(0, y0, im.width, y1 - y0).data; let n = 0;
+        // a tinta é medida no próprio canvas que vira JPG (síncrono): decodificar o arquivo depende do relógio real e é instável no CI
+        const medirCv = cv => { const c = cv.getContext('2d'), y0 = Math.round(cv.height * 0.25), y1 = Math.round(cv.height * 0.75), d = c.getImageData(0, y0, cv.width, y1 - y0).data; let n = 0;
           for (let i = 0; i < d.length; i += 4) if (d[i] < 235 || d[i + 1] < 235 || d[i + 2] < 235) n++;
-          return { w: im.width, h: im.height, tinta: Math.round(n / (d.length / 4) * 1000) / 1000 }; };
+          return { w: cv.width, h: cv.height, tinta: Math.round(n / (d.length / 4) * 1000) / 1000 }; };
+        const capturas = [], toBlobOrig = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = function (cb, tipo, q) { if (tipo === 'image/jpeg') capturas.push(medirCv(this)); return toBlobOrig.apply(this, arguments); };
         V.jpg_graficos = [];
         for (const c of cartoes) {
-          const blobs = [], orig2 = URL.createObjectURL; URL.createObjectURL = b => { blobs.push(b); return orig2.call(URL, b); };
-          c.querySelector(BOTAO).click(); await espera(2500); URL.createObjectURL = orig2;
-          const bl = blobs.find(b => b.type === 'image/jpeg'), r = bl ? await tinta(bl) : { sem: true };
+          capturas.length = 0;
+          c.querySelector(BOTAO).click(); await espera(2500);
+          const r = capturas.length ? capturas[capturas.length - 1] : { sem: true };
           r.titulo = c.querySelector('.mo-tit').innerText.slice(0, 40); V.jpg_graficos.push(r);
-        } }
+        }
+        HTMLCanvasElement.prototype.toBlob = toBlobOrig; }
       // ---- ranking das UFs: todas as UFs aparecem (barra, rótulo e linha da tabela) ou a página diz quais faltam
       { await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(500);
         const cr = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(x => /Ranking das UFs — Taxa/.test(x.innerText)), cht = cr && Chart.getChart(cr.querySelector('canvas'));
