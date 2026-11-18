@@ -325,6 +325,23 @@ JS_ROTEIRO = r"""
       // grades de cartões equilibradas: nenhuma linha com mais de um cartão a mais que outra
       for (const sec of ['brasil', 'uf', 'capitais']) { await ir('#/publicacoes?sec=' + sec); await espera(500);
         V.bandeiras['grade_' + sec] = Array.from(document.querySelectorAll('#conteudo .grade.g4')).map(g => { const linhas = {}; Array.from(g.children).forEach(k => { const t = Math.round(k.getBoundingClientRect().top); linhas[t] = (linhas[t] || 0) + 1; }); const q = Object.values(linhas); return { n: g.children.length, linhas: q.join('+'), ok: q.length > 0 && Math.max.apply(null, q) - Math.min.apply(null, q) <= 1 }; }); }
+
+      // ---- JPG de TODO gráfico da página: a imagem tem que ter o gráfico (barras/linhas no miolo), não só título e rodapé
+      { await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(600);
+        const BOTAO = '.mo-btn[title^="Baixar como imagem"], .mo-btn[data-mo-dica^="Baixar como imagem"]';
+        const cartoes = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).filter(c => c.querySelector('canvas') && c.querySelector(BOTAO));
+        const lerImg = bl => new Promise(res => { const fr = new FileReader(); fr.onload = () => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = fr.result; }; fr.onerror = () => res(null); fr.readAsDataURL(bl); setTimeout(() => res(null), 20000); });
+        const tinta = async bl => { const im = await lerImg(bl); if (!im) return { sem_leitura: true }; const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
+          const c = cv.getContext('2d'); c.drawImage(im, 0, 0); const y0 = Math.round(im.height * 0.25), y1 = Math.round(im.height * 0.75), d = c.getImageData(0, y0, im.width, y1 - y0).data; let n = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] < 235 || d[i + 1] < 235 || d[i + 2] < 235) n++;
+          return { w: im.width, h: im.height, tinta: Math.round(n / (d.length / 4) * 1000) / 1000 }; };
+        V.jpg_graficos = [];
+        for (const c of cartoes) {
+          const blobs = [], orig2 = URL.createObjectURL; URL.createObjectURL = b => { blobs.push(b); return orig2.call(URL, b); };
+          c.querySelector(BOTAO).click(); await espera(2500); URL.createObjectURL = orig2;
+          const bl = blobs.find(b => b.type === 'image/jpeg'), r = bl ? await tinta(bl) : { sem: true };
+          r.titulo = c.querySelector('.mo-tit').innerText.slice(0, 40); V.jpg_graficos.push(r);
+        } }
       // ---- ranking das UFs: todas as UFs aparecem (barra, rótulo e linha da tabela) ou a página diz quais faltam
       { await ir('#/publicacoes?sec=uf&ind=desocupacao'); await espera(500);
         const cr = Array.from(document.querySelectorAll('#conteudo .mo-cartao')).find(x => /Ranking das UFs — Taxa/.test(x.innerText)), cht = cr && Chart.getChart(cr.querySelector('canvas'));
@@ -606,6 +623,9 @@ def teste_casca(ctx, html=None, rotulo='casca'):
     ctx.confere(all(g['ok'] for k in ('grade_brasil', 'grade_uf', 'grade_capitais') for g in bd.get(k, [])) and bd.get('grade_uf'), (rotulo + ': cartões-resumo equilibrados por linha (%r)') % ({k: v for k, v in bd.items() if k.startswith('grade_')},))
     sl2 = v2.get('serie_longa') or {}
     ctx.confere(sl2.get('n', 0) > 40 and sl2.get('pontos_escondidos') and sl2.get('ultimo') and sl2.get('zero') and sl2.get('anos'), (rotulo + ': série longa sem bolinhas, só o último ponto marcado, eixo da taxa no zero e anos no eixo (%r)') % (sl2,))
+
+    jg = v2.get('jpg_graficos') or []
+    ctx.confere(len(jg) >= 2 and all((x.get('tinta') or 0) > 0.04 for x in jg), (rotulo + ': o JPG de cada gráfico da página traz o gráfico, não só título e rodapé (%r)') % (jg,))
     rk2 = v2.get('ranking_ufs') or {}
     ctx.confere(rk2.get('n') == 27 or rk2.get('aviso'), (rotulo + ': ranking mostra as 27 UFs ou diz quais faltam (%r)') % (rk2,))
     zz = v2.get('zeros') or {}

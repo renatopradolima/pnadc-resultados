@@ -354,7 +354,7 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
     try {
       /* `ch.options` é um resolvedor (proxy) do Chart.js: nada de Object.assign/spread a partir dele (isso lê as chaves
          simbólicas e quebra); só ATRIBUIÇÕES de propriedade, que ele aceita. */
-      o.animation = { duration: 450 };
+      o.animation = semAnimacao ? false : { duration: 450 };
       const lg = o.plugins.legend.labels;
       lg.usePointStyle = true; lg.pointStyle = 'circle'; lg.boxWidth = 8; lg.boxHeight = 8; lg.padding = 16; lg.color = TXT; lg.font = { size: 12.5, weight: '600' };
       const tp = o.plugins.tooltip;
@@ -523,12 +523,19 @@ table.rel-tab { border-collapse:separate; border-spacing:0; width:100%; font-siz
     return out;
   }
   /* desenha o cartão FORA DA TELA, num tamanho fixo, e devolve o que sobrou no contêiner */
+  /* IMAGEM (JPG/PNG/PDF/slide): o gráfico é desenhado FORA da tela e copiado na hora. Se houver animação em curso, o Chart.js adia o desenho para o
+     próximo quadro e a cópia sai em branco (só título e rodapé: achado do usuário, 18/11/2026). Por isso, enquanto se desenha para exportar, o
+     gráfico nasce SEM animação (padrão global desligado e `estilizar` respeita `semAnimacao`) e termina com um desenho explícito e síncrono. */
+  let semAnimacao = 0;
   function desenharForaDaTela(opc, modo, faixa) {
     const fora = U.el('div', { class: 'mo-fora mo-pagina' });
     document.body.appendChild(fora);
-    opc.desenhar(fora, { modo, cheia: true, exportando: true, faixa: faixa || null });
+    const padraoAnim = window.Chart ? Chart.defaults.animation : null;
+    semAnimacao++;
+    try { if (window.Chart) Chart.defaults.animation = false; opc.desenhar(fora, { modo, cheia: true, exportando: true, faixa: faixa || null }); }
+    finally { semAnimacao--; if (window.Chart && padraoAnim !== null) Chart.defaults.animation = padraoAnim; }
     // gráficos: sem animação e já no estado final
-    fora.querySelectorAll('canvas').forEach(cv => { try { const ch = window.Chart && Chart.getChart(cv); if (ch) { ch.options.animation = false; ch.resize(); ch.update('none'); } } catch (e) { /* ok */ } });
+    fora.querySelectorAll('canvas').forEach(cv => { try { const ch = window.Chart && Chart.getChart(cv); if (ch) { ch.options.animation = false; ch.resize(); ch.update('none'); ch.draw(); } } catch (e) { /* ok */ } });
     return fora;
   }
   function tabelaParaCanvas(tab, W) {

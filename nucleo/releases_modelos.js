@@ -511,11 +511,12 @@ const RELEASE_MODELOS = (() => {
       : `passou de ${R.val(it, v0)}, no ${ref}, para ${R.val(it, it.v)} (o IBGE não indicou se a variação é significativa)`;
     return `não tem comparação publicada com o ${ref}`;
   }
-  /* qual comparação abre o fato: a anual, salvo quando só a do período anterior é significativa (§12.5) */
+  /* qual comparação abre o fato: a do PERÍODO ANTERIOR (a PNAD Contínua é conjuntural: o que mudou desde a última divulgação é o que interessa),
+     salvo quando só a anual traz variação significativa (§12.5; ordem invertida a pedido do usuário em 18/11/2026) */
   function compPrincipal(E, it) {
     const ano = E.comparar.ano, ant = E.comparar.anterior;
-    if (ano && (significativa(it.dirAno) || !(ant && significativa(it.dirAnt)))) return 'ano';
-    if (ant) return 'ant';
+    if (ant && (significativa(it.dirAnt) || !(ano && significativa(it.dirAno)))) return 'ant';
+    if (ano) return 'ano';
     return null;
   }
   /* `extensa`: "ponto percentual" por extenso (a linha fina vem ANTES do lide,
@@ -1106,7 +1107,9 @@ const RELEASE_MODELOS = (() => {
     }
     telas.push({ titulo: 'Fonte e saiba mais', texto: R.reg(`PNAD Contínua – IBGE\nReferência: ${perLongo(F.per, F.fam)}\nDivulgação: ${dataCurta(F.div.data)}\n${linkDe(R)}`), rodape, alt: `Fonte: IBGE, PNAD Contínua, ${perLongo(F.per, F.fam)}, divulgada em ${dataCurta(F.div.data)}. ${linkDe(R)}` });
     const prim = t.conjunto ? `${it.nm.titulo} ${lugar.em}: ${R.val(it, v)} no ${R.perL()}.` : titulo(R, it).replace(/^Desemprego/, 'Desocupação') + '.';
-    const legenda = [prim.length > LIM.instagramVisivel ? `${it.ind.id === 'desocupacao' ? 'Desocupação' : it.nm.titulo} ${lugar.em}: ${R.val(it, v)} (${R.perC()}).` : prim];
+    // a primeira linha da legenda é o que aparece antes do "mais": ela tem de dizer o período (o título longo o deixa de fora, §12.6)
+    const dizPer = x => [perLongo(F.per, F.fam), perCurto(F.per, F.fam)].some(q => semAcento(x).toLowerCase().indexOf(semAcento(q).toLowerCase()) >= 0);
+    const legenda = [prim.length > LIM.instagramVisivel || !dizPer(prim) ? `${it.ind.id === 'desocupacao' ? 'Desocupação' : it.nm.titulo} ${lugar.em}: ${R.val(it, v)} (${R.perC()}).` : prim];
     const ref = referencia(R, it); if (ref) legenda.push(ref);
     const y2 = F.resto.find(z => itemSig(E, z)); if (y2) legenda.push(`${cap(y2.nm.sujeito)} ${predicado(R, y2, compPrincipal(E, y2))}.`);
     legenda.push(R.reg(`Fonte: IBGE, PNAD Contínua, divulgada em ${dataCurta(F.div.data)}. ${linkDe(R)}`));
@@ -1355,7 +1358,8 @@ const RELEASE_MODELOS = (() => {
         alt: `Gráfico de linhas ${it.nm.titulo.toLowerCase() === 'desocupação' ? 'da taxa de desocupação' : 'de ' + it.ind.rotulo.toLowerCase()} de ${perCurto(pers[0], F.fam)} a ${perCurto(pers[pers.length - 1], F.fam)}, com ${series.map(s => s.rotulo).join(', ')}. ${conclusao}. No ${perLongo(F.per, F.fam)}, ${t.nome} ${fmtVis(it.ind, ult)}` + (br ? ` contra ${fmtVis(it.ind, br.dados[br.dados.length - 1])} no Brasil.` : '.') });
     }
     const ufsDe = ind => { const fs = (D.series[ind.id] || {})[F.fam] || {}; return Object.keys(fs).filter(k => k.indexOf('N3|') === 0).map(k => { const loc = k.split('|')[1], p = pontoEm(fs[k], F.per); return p && !vazio(p.v) ? { loc, sigla: UF_SIGLA[loc] || loc, nome: D.locais[k] || loc, v: p.v, va: p.va, sa: p.sa, vc: p.vc, sc: p.sc } : null; }).filter(Boolean); };
-    const compVis = E.comparar.ano ? 'ano' : 'ant';
+    const compVis = E.comparar.anterior ? 'ant' : 'ano';
+    const rotComp = compVis === 'ant' ? (F.fam === 'trimestral' ? 'frente ao trimestre anterior' : 'frente a três meses antes') : 'em relação ao mesmo trimestre do ano anterior';
     if ((V.barras || V.grade) && F.fam === 'trimestral' && it.ind.tipo !== 'contagem') {
       const ufs = ufsDe(it.ind).sort((a, b) => b.v - a.v);
       const foco = t.id === 'uf' ? t.loc : t.conjunto ? t.foco.loc : t.id === 'capital' ? String(D.uf.codigo) : null;
@@ -1364,7 +1368,7 @@ const RELEASE_MODELOS = (() => {
         const pos = ufs.findIndex(u => u.loc === foco);
         const fUf = pos >= 0 ? ufs[pos] : null;
         const tit = fUf && ufs.length - pos <= 5 && it.nm.plural ? `${fUf.nome} está entre ${it.nm.gp === 'f' ? 'as' : 'os'} cinco menores ${it.nm.plural} do país` : fUf && pos < 5 && it.nm.plural ? `${fUf.nome} está entre ${it.nm.gp === 'f' ? 'as' : 'os'} cinco maiores ${it.nm.plural} do país` : `${it.ind.rotulo} por unidade da federação`;
-        out.push({ id: 'barras', tipo: 'barras', titulo: tit, subtitulo: `${it.ind.rotulo}, ${perCurto(F.per, F.fam)}${fUf ? ' · ' + fUf.nome + ' em destaque' : ''}${pb ? ' · linha tracejada: Brasil' : ''}`, fonte, ind: it.ind,
+        out.push({ id: 'barras', tipo: 'barras', titulo: tit, subtitulo: `${it.ind.rotulo}, ${perCurto(F.per, F.fam)}${fUf ? ' · ' + fUf.nome + ' em destaque' : ''}${pb ? ' · linha tracejada: Brasil' : ''} · ▲▼ variação significativa e ● estável, ${rotComp}`, fonte, ind: it.ind,
           itens: ufs.map(u => ({ rotulo: u.sigla, nome: u.nome, valor: u.v, destaque: u.loc === foco, estado: sit(compVis === 'ano' ? u.sa : u.sc, compVis === 'ano' ? u.va : u.vc) })), referencia: pb ? { rotulo: 'Brasil', valor: pb.v } : null,
           alt: `Gráfico de barras horizontais ${it.ind.rotulo.toLowerCase().indexOf('taxa') === 0 ? 'da ' : 'de '}${it.ind.rotulo.toLowerCase()} nas ${ufs.length} unidades da federação no ${perLongo(F.per, F.fam)}, da maior para a menor. Maior: ${ufs[0].nome}, ${fmtVis(it.ind, ufs[0].v)}; menor: ${ufs[ufs.length - 1].nome}, ${fmtVis(it.ind, ufs[ufs.length - 1].v)}.` + (fUf ? ` ${fUf.nome}: ${fmtVis(it.ind, fUf.v)}, ${pos + 1}ª posição.` : '') + (pb ? ` Brasil: ${fmtVis(it.ind, pb.v)}.` : '') });
       }
@@ -1379,17 +1383,20 @@ const RELEASE_MODELOS = (() => {
       }
     }
     if (V.halteres && !t.conjunto) {
-      const taxas = F.itens.filter(y => y.ind.tipo === 'taxa' && !vazio(y.v0Ano) && E.comparar.ano);
-      if (taxas.length) out.push({ id: 'halteres', tipo: 'halteres', titulo: `${t.nome}: ${perCurto(perAnoAnt(F.per), F.fam)} × ${perCurto(F.per, F.fam)}`, subtitulo: 'Taxas, em %, na mesma escala. Cor só quando o IBGE publica variação significativa; senão, "estável"', fonte,
-        linhas: taxas.map(y => ({ rotulo: y.ind.rotulo, de: y.v0Ano, para: y.v, va: y.va, estado: y.dirAno, sentido: y.ind.sentido })), perDe: perCurto(perAnoAnt(F.per), F.fam), perPara: perCurto(F.per, F.fam),
-        alt: `Gráfico de halteres ${t.de} comparando ${perCurto(perAnoAnt(F.per), F.fam)} e ${perCurto(F.per, F.fam)}: ` + taxas.map(y => `${y.ind.rotulo} de ${fmtVis(y.ind, y.v0Ano)} para ${fmtVis(y.ind, y.v)} (${({ aumentou: 'aumentou', diminuiu: 'diminuiu', estavel: 'estável' })[y.dirAno] || 'sem indicação de significância'})`).join('; ') + '.' });
+      const ant = compVis === 'ant', v0 = y => (ant ? y.v0Ant : y.v0Ano), dirC = y => (ant ? y.dirAnt : y.dirAno), varC = y => (ant ? y.vc : y.va), perDeH = ant ? perAnterior(F.per, F.fam) : perAnoAnt(F.per);
+      const taxas = F.itens.filter(y => y.ind.tipo === 'taxa' && !vazio(v0(y)) && (ant ? E.comparar.anterior : E.comparar.ano));
+      if (taxas.length) out.push({ id: 'halteres', tipo: 'halteres', titulo: `${t.nome}: ${perCurto(perDeH, F.fam)} × ${perCurto(F.per, F.fam)}`, subtitulo: `Taxas, em %, na mesma escala. Variação ${rotComp}; cor só quando o IBGE publica variação significativa, senão "estável"`, fonte,
+        rotuloVar: ant ? 'VARIAÇÃO NO TRIMESTRE' : 'VARIAÇÃO EM UM ANO',
+        linhas: taxas.map(y => ({ rotulo: y.ind.rotulo, de: v0(y), para: y.v, va: varC(y), estado: dirC(y), sentido: y.ind.sentido })), perDe: perCurto(perDeH, F.fam), perPara: perCurto(F.per, F.fam),
+        alt: `Gráfico de halteres ${t.de} comparando ${perCurto(perDeH, F.fam)} e ${perCurto(F.per, F.fam)}: ` + taxas.map(y => `${y.ind.rotulo} de ${fmtVis(y.ind, v0(y))} para ${fmtVis(y.ind, y.v)} (${({ aumentou: 'aumentou', diminuiu: 'diminuiu', estavel: 'estável' })[dirC(y)] || 'sem indicação de significância'})`).join('; ') + '.' });
     }
     if (V.tabela && !t.conjunto) {
-      const cols = [t.nome, 'CV', `× ${perCurto(perAnoAnt(F.per), F.fam)}`, 'Situação'].concat(t.id === 'uf' ? ['Região ' + F.regNome] : []).concat(t.id !== 'brasil' ? ['Brasil'] : []);
-      const ls = F.itens.map(y => [y.ind.rotulo, fmtVis(y.ind, y.v), vazio(y.cv) ? '–' : num(y.cv, 1) + '%', vazio(y.va) ? '–' : num(y.va, 1).replace('-', '−') + (y.ind.tipo === 'taxa' ? ' p.p.' : '%'),
-        ({ aumentou: 'aumentou', diminuiu: 'diminuiu', estavel: 'estável', sem: 'sem indicação', sig0: 'significativa', desconhecida: '?' })[y.dirAno]]
+      const antT = compVis === 'ant', perT = antT ? perAnterior(F.per, F.fam) : perAnoAnt(F.per), dirT = y => (antT ? y.dirAnt : y.dirAno), varT = y => (antT ? y.vc : y.va);
+      const cols = [t.nome, 'CV', `× ${perCurto(perT, F.fam)}`, 'Situação'].concat(t.id === 'uf' ? ['Região ' + F.regNome] : []).concat(t.id !== 'brasil' ? ['Brasil'] : []);
+      const ls = F.itens.map(y => [y.ind.rotulo, fmtVis(y.ind, y.v), vazio(y.cv) ? '–' : num(y.cv, 1) + '%', vazio(varT(y)) ? '–' : num(varT(y), 1).replace('-', '−') + (y.ind.tipo === 'taxa' ? ' p.p.' : '%'),
+        ({ aumentou: 'aumentou', diminuiu: 'diminuiu', estavel: 'estável', sem: 'sem indicação', sig0: 'significativa', desconhecida: '?' })[dirT(y)]]
         .concat(t.id === 'uf' ? [y.refs.regiao ? fmtVis(y.ind, y.refs.regiao.v) : '–'] : []).concat(t.id !== 'brasil' ? [y.refs.brasil ? fmtVis(y.ind, y.refs.brasil.v) : '–'] : []));
-      out.push({ id: 'tabela', tipo: 'tabela', titulo: `Indicadores ${t.de}, ${perCurto(F.per, F.fam)}`, subtitulo: 'Situação da variação em um ano, como publicada pelo IBGE', fonte: `Fonte: IBGE, PNAD Contínua (SIDRA, tabelas ${F.tabelas.join(', ')}). Divulgação: ${dataCurta(F.div.data)}.`,
+      out.push({ id: 'tabela', tipo: 'tabela', titulo: `Indicadores ${t.de}, ${perCurto(F.per, F.fam)}`, subtitulo: `Situação da variação ${rotComp}, como publicada pelo IBGE`, fonte: `Fonte: IBGE, PNAD Contínua (SIDRA, tabelas ${F.tabelas.join(', ')}). Divulgação: ${dataCurta(F.div.data)}.`,
         colunas: ['Indicador'].concat(cols), linhas: ls, destaque: 0,
         alt: `Tabela dos indicadores ${t.de} no ${perLongo(F.per, F.fam)}: ` + F.itens.map(y => `${y.ind.rotulo} ${fmtVis(y.ind, y.v)}`).join('; ') + '.' });
     }

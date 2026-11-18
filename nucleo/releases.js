@@ -347,7 +347,7 @@ const RELEASES = (() => {
     c.fillStyle = MOLDURA.COR.estavel; c.beginPath(); c.arc(xr + 24 + wDe + 40, yLeg + 10, 8, 0, 7); c.fill();
     c.fillStyle = '#243b53'; c.fillText(spec.perPara, xr + 24 + wDe + 56, yLeg + 10);
     c.font = `700 13px ${FONTE}`; c.fillStyle = '#486581'; c.textAlign = 'left';
-    c.fillText('ANTES → AGORA', xv, yEixo); c.fillText('VARIAÇÃO EM UM ANO', xc, yEixo);
+    c.fillText('ANTES → AGORA', xv, yEixo); c.fillText(spec.rotuloVar || 'VARIAÇÃO EM UM ANO', xc, yEixo);
     // linhas, faixa alternada e grade
     spec.linhas.forEach((l, i) => { if (i % 2 === 0) { c.fillStyle = '#f4f8fb'; c.fillRect(xr - 10, y0 + i * h, W - 2 * xr + 20, h); } });
     c.textAlign = 'center'; c.font = `13px ${FONTE}`;
